@@ -1,0 +1,17 @@
+# Core Standard Library Dependencies
+# No external packages are strictly required to run the script in its default state.
+# Python 3.6+ and Git (system-level) are required.
+
+# Recommended Optional PIP Packages for Enhanced Functionality:
+# -------------------------------------------------------------
+# Cross-platform ANSI color rendering (Windows support)
+colorama>=0.4.6
+
+# Rich text, tables, and enhanced UI formatting
+rich>=13.0.0
+
+# Interactive CLI menu navigation (arrow-key selection)
+InquirerPy>=0.3.4
+
+# Native Git repository management and progress tracking
+GitPython>=3.1.0
