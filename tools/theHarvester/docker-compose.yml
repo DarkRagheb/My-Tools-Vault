@@ -1,0 +1,15 @@
+services:
+  theharvester.svc.local:
+    container_name: theHarvester
+    volumes:
+      - ./theHarvester/data/api-keys.yaml:/root/.theHarvester/api-keys.yaml
+      - ./theHarvester/data/api-keys.yaml:/etc/theHarvester/api-keys.yaml
+      - ./theHarvester/data/proxies.yaml:/etc/theHarvester/proxies.yaml
+      - ./theHarvester/data/proxies.yaml:/root/.theHarvester/proxies.yaml
+    build: .
+    ports:
+      - "5000:80"
+
+networks:
+  default:
+    name: app_theHarvester_network

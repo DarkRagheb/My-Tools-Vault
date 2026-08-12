@@ -1,0 +1,264 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) Micah Lee, et al.
+# This file is distributed under the same license as the OnionShare package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2020.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: OnionShare 2.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-06-01 19:58+0530\n"
+"PO-Revision-Date: 2025-04-23 11:56+0000\n"
+"Last-Translator: GiannosOB <giannos2105@gmail.com>\n"
+"Language-Team: el <LL@li.org>\n"
+"Language: el\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 5.11.1-dev\n"
+"Generated-By: Babel 2.9.0\n"
+
+#: ../../source/develop.rst:2
+msgid "Developing OnionShare"
+msgstr "Ανάπτυξη OnionShare"
+
+#: ../../source/develop.rst:7
+msgid "Collaborating"
+msgstr "Συνεργασία"
+
+#: ../../source/develop.rst:9
+msgid ""
+"OnionShare has an open Keybase team to discuss the project, ask questions, "
+"share ideas and designs, and making plans for future development. (It's also "
+"an easy way to send end-to-end encrypted direct messages to others in the "
+"OnionShare community, like OnionShare addresses.) To use Keybase, download "
+"the `Keybase app <https://keybase.io/download>`_, make an account, and `join "
+"this team <https://keybase.io/team/onionshare>`_. Within the app, go to "
+"\"Teams\", click \"Join a Team\", and type \"onionshare\"."
+msgstr ""
+"Το OnionShare έχει ένα κανάλι συζητήσεων στο Keybase για να μπορέσει ο "
+"καθένας να μιλήσει για αυτό, να υποβάλει ερωτήσεις, να μοιραστεί ιδέες και "
+"σχέδια και να κάνει μελλοντικά σχέδια πάνω σε αυτό. (Είναι επίσης ένας "
+"εύκολος τρόπος για την αποστολή κρυπτογραφημένων μηνυμάτων στην κοινότητα "
+"του OnionShare, όπως οι διευθύνσεις OnionShare.) Για να χρησιμοποιήσετε το "
+"Keybase, κατεβάστε την `εφαρμογή Keybase <https://keybase.io/download>`_ , "
+"δημιουργήστε λογαριασμό και `εγγραφείτε στην ομάδα <https://keybase.io/team/"
+"onionshare>`_. Μέσα στην εφαρμογή, μεταβείτε στην ενότητα \"Ομάδες\", κάντε "
+"κλικ στην επιλογή \"Συμμετοχή σε ομάδα\" και πληκτρολογήστε \"onionshare\"."
+
+#: ../../source/develop.rst:12
+msgid ""
+"OnionShare also has a `mailing list <https://lists.riseup.net/www/subscribe/"
+"onionshare-dev>`_ for developers and and designers to discuss the project."
+msgstr ""
+"Το OnionShare διαθέτει `λίστα ηλεκτρονικού ταχυδρομίου <https://"
+"lists.riseup.net/www/subscribe/onionshare-dev>`_ για προγραμματιστές και "
+"σχεδιαστές με σκοό την ανταλλαγή απόψεων."
+
+#: ../../source/develop.rst:15
+msgid "Contributing Code"
+msgstr "Συνεισφορά κώδικα"
+
+#: ../../source/develop.rst:17
+msgid ""
+"OnionShare source code is to be found in this Git repository: https://"
+"github.com/onionshare/onionshare"
+msgstr ""
+"Ο πηγαίος κώδικας του OnionShare βρίσκεται στο αποθετήριο Git: https://"
+"github.com/onionshare/onionshare"
+
+#: ../../source/develop.rst:19
+msgid ""
+"If you'd like to contribute code to OnionShare, it helps to join the Keybase "
+"team and ask questions about what you're thinking of working on. You should "
+"also review all of the `open issues <https://github.com/onionshare/"
+"onionshare/issues>`_ on GitHub to see if there are any you'd like to tackle."
+msgstr ""
+"Εάν θέλετε να συνεισφέρετε με κώδικα στο OnionShare, θα πρέπει να εγγραφείτε "
+"στην ομάδα του Keybase και να υποβάλετε ερωτήσεις σχετικά με τις ιδέες σας. "
+"Θα πρέπει επίσης να έχετε διαβάσει τα `ανοιχτά ζητήματα <https://github.com/"
+"onionshare/onionshare/issues>`_ στο GitHub για να δείτε αν υπάρχουν κάποια "
+"που θέλετε να συμμετέχετε."
+
+#: ../../source/develop.rst:22
+msgid ""
+"When you're ready to contribute code, open a pull request in the GitHub "
+"repository and one of the project maintainers will review it and possibly "
+"ask questions, request changes, reject it, or merge it into the project."
+msgstr ""
+"Όταν είστε έτοιμοι να συνεισφέρετε κώδικα, ανοίξτε ένα αίτημα στο αποθετήριο "
+"του GitHub και ένας διαχειριστής του έργου θα το εξετάσει και πιθανώς θα "
+"υποβάλει ερωτήσεις, θα ζητήσει αλλαγές, θα τον απορρίψει ή θα τον "
+"συγχωνεύσει στο έργο."
+
+#: ../../source/develop.rst:27
+msgid "Starting Development"
+msgstr "Έναρξη ανάπτυξης"
+
+#: ../../source/develop.rst:29
+msgid ""
+"OnionShare is developed in Python. To get started, clone the Git repository "
+"at https://github.com/onionshare/onionshare/ and then consult the ``cli/"
+"README.md`` file to learn how to set up your development environment for the "
+"command-line version, and the ``desktop/README.md`` file to learn how to set "
+"up your development environment for the graphical version."
+msgstr ""
+"Το OnionShare αναπτύσσεται με την Python. Για να ξεκινήσετε, κλωνοποιήστε το "
+"αποθετήριο Git στη διεύθυνση https://github.com/onionshare/onionshare/ και "
+"στη συνέχεια συμβουλευτείτε το αρχείο ``cli/README.md`` για να μάθετε πώς να "
+"ρυθμίσετε το περιβάλλον ανάπτυξής σας, για την έκδοση γραμμής εντολών και το "
+"αρχείο ``desktop/README.md`` για να μάθετε πώς να ρυθμίσετε το περιβάλλον "
+"ανάπτυξής σας για την έκδοση γραφικών."
+
+#: ../../source/develop.rst:32
+msgid ""
+"Those files contain the necessary technical instructions and commands "
+"install dependencies for your platform, and to run OnionShare from the "
+"source tree."
+msgstr ""
+"Αυτά τα αρχεία περιέχουν τις απαραίτητες οδηγίες και εντολές για εγκατάσταση "
+"στην πλατφόρμα σας και την εκτέλεση του OnionShare από τον πηγαίο κώδικα."
+
+#: ../../source/develop.rst:35
+msgid "Debugging tips"
+msgstr "Συμβουλές εντοπισμού σφαλμάτων"
+
+#: ../../source/develop.rst:38
+msgid "Verbose mode"
+msgstr "Κατάσταση προγραμματισμού"
+
+#: ../../source/develop.rst:40
+msgid ""
+"When developing, it's convenient to run OnionShare from a terminal and add "
+"the ``--verbose`` (or ``-v``) flag to the command. This prints a lot of "
+"helpful messages to the terminal, such as when certain objects are "
+"initialized, when events occur (like buttons clicked, settings saved or "
+"reloaded), and other debug info. For example::"
+msgstr ""
+"Κατά την ανάπτυξη, είναι βολικό να εκτελείτε το OnionShare από ένα τερματικό "
+"και να προσθέτετε τη σημαία ``--verbose`` (ή ``-v``) στην εντολή. Αυτό "
+"εκτυπώνει πολλά χρήσιμα μηνύματα στο τερματικό, όπως π.χ. όταν ορισμένα "
+"αντικείμενα αρχικοποιούνται, όταν συμβαίνουν γεγονότα (όπως κλικ σε κουμπιά, "
+"αποθήκευση ή επαναφόρτωση ρυθμίσεων) και άλλες πληροφορίες εντοπισμού "
+"σφαλμάτων. Για παράδειγμα:"
+
+#: ../../source/develop.rst:117
+msgid ""
+"You can add your own debug messages by running the ``Common.log`` method "
+"from ``onionshare/common.py``. For example::"
+msgstr ""
+"Μπορείτε να προσθέσετε τα δικά σας μηνύματα εντοπισμού σφαλμάτων εκτελώντας "
+"τη μέθοδο ``Common.log`` από το αρχείο ``onionshare/common.py``. Για "
+"παράδειγμα:"
+
+#: ../../source/develop.rst:121
+msgid ""
+"This can be useful when learning the chain of events that occur when using "
+"OnionShare, or the value of certain variables before and after they are "
+"manipulated."
+msgstr ""
+"Αυτό είναι χρήσιμο όταν μαθένετ για την αλυσίδα των γεγονότων που συμβαίνουν "
+"κατά τη χρήση του OnionShare, ή την τιμή ορισμένων μεταβλητών πριν και μετά "
+"την επεξεργασία τους."
+
+#: ../../source/develop.rst:124
+msgid "Local Only"
+msgstr "Μόνο τοπικά"
+
+#: ../../source/develop.rst:126
+msgid ""
+"Tor is slow, and it's often convenient to skip starting onion services "
+"altogether during development. You can do this with the ``--local-only`` "
+"flag. For example::"
+msgstr ""
+"Το Tor είναι αργό και συχνά είναι βολικό να παραλείψετε εντελώς την εκκίνηση "
+"των υπηρεσιών κρεμμυδιού κατά τη διάρκεια της ανάπτυξης. Μπορείτε να το "
+"κάνετε αυτό με τη σημαία ``--local-only``. Για παράδειγμα:"
+
+#: ../../source/develop.rst:165
+msgid ""
+"In this case, you load the URL ``http://127.0.0.1:17641`` in a normal web-"
+"browser like Firefox, instead of using the Tor Browser. The private key is "
+"not actually needed in local-only mode, so you can ignore it."
+msgstr ""
+"Σε αυτή την περίπτωση, θα φορτωθεί η URL ``http://127.0.0.1:17641`` σε "
+"κανονικό περιηγητή όπως το Firefox, αντί του Tor Browser. Το ιδιωτικό κλειδί "
+"δεν χρειάζεται στην κατάσταση τοπικής λειτουργίας, οπότε μπορείτε να το "
+"αγνοήσετε."
+
+#: ../../source/develop.rst:168
+msgid "Contributing Translations"
+msgstr "Συνεισφορά μεταφράσεων"
+
+#: ../../source/develop.rst:170
+msgid ""
+"Help make OnionShare easier to use and more familiar and welcoming for "
+"people by translating it on `Hosted Weblate <https://hosted.weblate.org/"
+"projects/onionshare/>`_. Always keep the \"OnionShare\" in latin letters, "
+"and use \"OnionShare (localname)\" if needed."
+msgstr ""
+"Βοηθήστε το OnionShare να είναι ευκολότερο στη χρήση, πιο οικείο και "
+"φιλόξενο για τους χρήστες, μεταφράζοντάς το στο `Hosted Weblate <https://"
+"hosted.weblate.org/projects/onionshare/>`_. Διατηρείτε πάντα το "
+"\"OnionShare\" με λατινικά γράμματα και χρησιμοποιήστε το \"OnionShare "
+"(τοπικο όνομα)\" εάν χρειάζεται."
+
+#: ../../source/develop.rst:172
+msgid ""
+"To help translate, make a Hosted Weblate account and start contributing."
+msgstr ""
+"Για να βοηθήσετε στη μετάφραση, δημιουργήστε ένα λογαριασμό στο Weblate και "
+"αρχίστε τη συνεισφορά σας."
+
+#: ../../source/develop.rst:175
+msgid "Suggestions for Original English Strings"
+msgstr "Προτάσεις αυθεντικών Αγγλικών ορισμών"
+
+#: ../../source/develop.rst:177
+msgid ""
+"Sometimes the original English strings are wrong, or don't match between the "
+"application and the documentation."
+msgstr ""
+"Κάποιες φορές οι πρωτότυποι Αγγλικοί ορισμοί είναι λάθος ή δεν συμφωνούν "
+"μεταξύ της εφαρμογής και της τεκμηρίωσης."
+
+#: ../../source/develop.rst:179
+msgid ""
+"File source string improvements by adding @kingu to your Weblate comment, or "
+"open a GitHub issue or pull request. The latter ensures all upstream "
+"developers see the suggestion, and can potentially modify the string via the "
+"usual code review processes."
+msgstr ""
+"Για βελτιώσεις ορισμών του αρχείου προέλευσης, προσθέστε το @kingu στο "
+"σχόλιό σας στο Weblate ή ανοίξτε ένα ζήτημα στο GitHub. Έτσι διασφαλίζετε "
+"ότι όλοι οι προγραμματιστές θα δούν την πρόταση και μπορούν ενδεχομένως να "
+"προβούν σε τροποποίηση μέσω των συνήθων διαδικασιών ελέγχου κώδικα."
+
+#: ../../source/develop.rst:183
+msgid "Status of Translations"
+msgstr "Κατάσταση μεταφράσεων"
+
+#: ../../source/develop.rst:184
+msgid ""
+"Here is the current translation status. If you want start a translation in a "
+"language not yet started, please write to the mailing list: onionshare-"
+"dev@lists.riseup.net"
+msgstr ""
+"Εδώ είναι η τρέχουσα κατάσταση μετάφρασης. Εάν θέλετε να ξενικήσετε τη "
+"μετάφραση σε γλώσσα που δεν υπάρχει, παρακαλούμε επικοινωνήστε στο: "
+"onionshare-dev@lists.riseup.net"
+
+#~ msgid ""
+#~ "OnionShare is developed in Python. To get started, clone the Git "
+#~ "repository at https://github.com/micahflee/onionshare/ and then consult "
+#~ "the ``cli/README.md`` file to learn how to set up your development "
+#~ "environment for the command-line version, and the ``desktop/README.md`` "
+#~ "file to learn how to set up your development environment for the "
+#~ "graphical version."
+#~ msgstr ""
+#~ "Το OnionShare αναπτύσετε με το Python. Για να ξεκινήσετε, αντιγράψτε το "
+#~ "αποθετήριο από https://github.com/micahflee/onionshare/ και "
+#~ "συμβουλευτείτε το αρχείο ``cli/README.md`` για να μάθετε περισσότερα για "
+#~ "τη ρύθμιση της έκδοσης περιβάλλοντος γραμμής εντολών και του αρχείου "
+#~ "``desktop/README.md`` για την έκδοση γραφικού περιβάλλοντος."

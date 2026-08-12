@@ -1,0 +1,802 @@
+/***************************************************************************
+ * TCPHeader.cc -- The TCPHeader Class represents a TCP packet. It         *
+ * contains methods to set the different header fields. These methods      *
+ * tipically perform the necessary error checks and byte order             *
+ * conversions.                                                            *
+ *                                                                         *
+ ***********************IMPORTANT NMAP LICENSE TERMS************************
+ *
+ * The Nmap Security Scanner is (C) 1996-2026 Nmap Software LLC ("The Nmap
+ * Project"). Nmap is also a registered trademark of the Nmap Project.
+ *
+ * This program is distributed under the terms of the Nmap Public Source
+ * License (NPSL). The exact license text applying to a particular Nmap
+ * release or source code control revision is contained in the LICENSE
+ * file distributed with that version of Nmap or source code control
+ * revision. More Nmap copyright/legal information is available from
+ * https://nmap.org/book/man-legal.html, and further information on the
+ * NPSL license itself can be found at https://nmap.org/npsl/ . This
+ * header summarizes some key points from the Nmap license, but is no
+ * substitute for the actual license text.
+ *
+ * Nmap is generally free for end users to download and use themselves,
+ * including commercial use. It is available from https://nmap.org.
+ *
+ * The Nmap license generally prohibits companies from using and
+ * redistributing Nmap in commercial products, but we sell a special Nmap
+ * OEM Edition with a more permissive license and special features for
+ * this purpose. See https://nmap.org/oem/
+ *
+ * If you have received a written Nmap license agreement or contract
+ * stating terms other than these (such as an Nmap OEM license), you may
+ * choose to use and redistribute Nmap under those terms instead.
+ *
+ * The official Nmap Windows builds include the Npcap software
+ * (https://npcap.com) for packet capture and transmission. It is under
+ * separate license terms which forbid redistribution without special
+ * permission. So the official Nmap Windows builds may not be redistributed
+ * without special permission (such as an Nmap OEM license).
+ *
+ * Source is provided to this software because we believe users have a
+ * right to know exactly what a program is going to do before they run it.
+ * This also allows you to audit the software for security holes.
+ *
+ * Source code also allows you to port Nmap to new platforms, fix bugs, and
+ * add new features. You are highly encouraged to submit your changes as a
+ * Github PR or by email to the dev@nmap.org mailing list for possible
+ * incorporation into the main distribution. Unless you specify otherwise, it
+ * is understood that you are offering us very broad rights to use your
+ * submissions as described in the Nmap Public Source License Contributor
+ * Agreement. This is important because we fund the project by selling licenses
+ * with various terms, and also because the inability to relicense code has
+ * caused devastating problems for other Free Software projects (such as KDE
+ * and NASM).
+ *
+ * The free version of Nmap is distributed in the hope that it will be
+ * useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. Warranties,
+ * indemnification and commercial support are all available through the
+ * Npcap OEM program--see https://nmap.org/oem/
+ *
+ ***************************************************************************/
+/* This code was originally part of the Nping tool.                        */
+
+#include "TCPHeader.h"
+#include <assert.h>
+/******************************************************************************/
+/* CONTRUCTORS, DESTRUCTORS AND INITIALIZATION METHODS                        */
+/******************************************************************************/
+TCPHeader::TCPHeader(){
+  this->reset();
+} /* End of TCPHeader constructor */
+
+
+TCPHeader::~TCPHeader(){
+
+} /* End of TCPHeader destructor */
+
+/** Sets every attribute to its default value */
+void TCPHeader::reset(){
+  memset(&this->h, 0, sizeof(nping_tcp_hdr_t));
+  this->length=TCP_HEADER_LEN; /* Initial value 20. This will be incremented if options are used */
+  this->tcpoptlen=0;
+  this->setSourcePort(TCP_DEFAULT_SPORT);
+  this->setDestinationPort(TCP_DEFAULT_DPORT);
+  this->setSeq(TCP_DEFAULT_SEQ);
+  this->setAck(TCP_DEFAULT_ACK);
+  this->setFlags(TCP_DEFAULT_FLAGS);
+  this->setWindow(TCP_DEFAULT_WIN);
+  this->setUrgPointer(TCP_DEFAULT_URP);
+  this->setOffset();
+} /* End of reset() */
+
+
+/******************************************************************************/
+/* PacketElement:: OVERWRITTEN METHODS                                        */
+/******************************************************************************/
+
+/** @warning This method is essential for the superclass getBinaryBuffer()
+ *  method to work. Do NOT change a thing unless you know what you're doing  */
+u8 * TCPHeader::getBufferPointer(){
+  return (u8*)(&h);
+} /* End of getBufferPointer() */
+
+
+/** Stores supplied packet in the internal buffer so the information
+  * can be accessed using the standard get & set methods.
+  * @warning  The TCPHeader class is able to hold a maximum of 60 bytes. If the
+  * supplied buffer is longer than that, only the first 60 bytes will be stored
+  * in the internal buffer.
+  * @warning Supplied len MUST be at least 20 bytes (min TCP header length).
+  * @return OP_SUCCESS on success and OP_FAILURE in case of error */
+int TCPHeader::storeRecvData(const u8 *buf, size_t len){
+  if(buf==NULL || len<TCP_HEADER_LEN){
+    return OP_FAILURE;
+  }else{
+    int stored_len = MIN((TCP_HEADER_LEN + MAX_TCP_OPTIONS_LEN), len);
+    this->reset(); /* Re-init the object, just in case the caller had used it already */
+    this->length=stored_len;
+    if(stored_len>TCP_HEADER_LEN)
+        this->tcpoptlen=stored_len-TCP_HEADER_LEN;
+    memcpy(&(this->h), buf, stored_len);
+  }
+ return OP_SUCCESS;
+} /* End of storeRecvData() */
+
+
+/* Returns a protocol identifier. This is used by packet parsing funtions
+ * that return linked lists of PacketElement objects, to determine the protocol
+ * the object represents. */
+int TCPHeader::protocol_id() const {
+  return HEADER_TYPE_TCP;
+} /* End of protocol_id() */
+
+
+/** Determines if the data stored in the object after an storeRecvData() call
+  * is valid and safe to use. This mainly checks the length of the data but may
+  * also test the value of certain protocol fields to ensure their correctness.
+  * @warning If the information stored in the object has been set through a
+  * call to storeRecvData(), the object's internal length count may be updated
+  * if the validation is successful.
+  * @return the length, in bytes, of the header, if its found to be valid or
+  * OP_FAILURE (-1) otherwise. */
+int TCPHeader::validate(){
+  if(this->getOffset()<5)
+    return OP_FAILURE;
+  else if(this->getOffset()*4 > this->length)
+    return OP_FAILURE;
+  this->length=this->getOffset()*4;
+  return this->length;
+} /* End of validate() */
+
+
+/** Prints the contents of the header and calls print() on the next protocol
+  * header in the chain (if there is any).
+  * @return OP_SUCCESS on success and OP_FAILURE in case of error. */
+int TCPHeader::print(FILE *output, int detail) const {
+  char optinfo[256];
+  fprintf(output, "TCP[");
+  fprintf(output, "%d", this->getSourcePort());
+  fprintf(output, " >");
+  fprintf(output, " %d", this->getDestinationPort());
+  fprintf(output, " %s%s%s%s%s%s%s%s",
+          !this->getSYN() ? "" : "S",
+          !this->getFIN() ? "" : "F",
+          !this->getRST() ? "" : "R",
+          !this->getPSH() ? "" : "P",
+          !this->getACK() ? "" : "A",
+          !this->getURG() ? "" : "U",
+          !this->getECN() ? "" : "E",
+          !this->getCWR() ? "" : "C"
+         );
+  fprintf(output, " seq=%lu", (long unsigned int)this->getSeq() );
+  if(detail>=PRINT_DETAIL_HIGH){
+    fprintf(output, " ack=%lu", (long unsigned int)this->getAck() );
+    fprintf(output, " off=%d", this->getOffset() );
+    fprintf(output, " res=%d", this->h.th_x2);
+  }
+  fprintf(output, " win=%hu", this->getWindow() );
+  if(detail>=PRINT_DETAIL_MED)
+    fprintf(output, " csum=0x%04X", ntohs( this->getSum() ));
+  if(detail>=PRINT_DETAIL_HIGH)
+    fprintf(output, " urp=%d", this->getUrgPointer() );
+
+  if(this->tcpoptlen>0 && (this->length >= TCP_HEADER_LEN+this->tcpoptlen) && this->tcpoptlen<=MAX_TCP_OPTIONS_LEN){
+    tcppacketoptinfo(this->h.options, this->tcpoptlen, optinfo, sizeof(optinfo)-1);
+    optinfo[255]='\0';
+    fprintf(output, " %s", optinfo);
+  }
+  fprintf(output, "]");
+
+  if(this->next!=NULL){
+    print_separator(output, detail);
+    next->print(output, detail);
+  }
+  return OP_SUCCESS;
+} /* End of print() */
+
+
+/******************************************************************************/
+/* PROTOCOL-SPECIFIC METHODS                                                  */
+/******************************************************************************/
+
+/** Sets source port.
+ *  @warning Port must be supplied in host byte order. This method performs
+ *  byte order conversion using htons() */
+int TCPHeader::setSourcePort(u16 p){
+  h.th_sport = htons(p);
+  return OP_SUCCESS;
+} /* End of setSourcePort() */
+
+
+/** Returns source port in HOST byte order */
+u16 TCPHeader::getSourcePort() const {
+  return ntohs(h.th_sport);
+} /* End of getSourcePort() */
+
+
+/** Sets destination port.
+ *  @warning Port must be supplied in host byte order. This method performs
+ *  byte order conversion using htons() */
+int TCPHeader::setDestinationPort(u16 p){
+  h.th_dport = htons(p);
+  return OP_SUCCESS;
+} /* End of setDestinationPort() */
+
+
+/** Returns destination port in HOST byte order  */
+u16 TCPHeader::getDestinationPort() const {
+  return ntohs(h.th_dport);
+} /* End of getDestinationPort() */
+
+
+/** Sets sequence number.
+ *  @warning Seq number must be supplied in host byte order. This method
+ *  performs byte order conversion using htonl() */
+int TCPHeader::setSeq(u32 p){
+  h.th_seq = htonl(p);
+  return OP_SUCCESS;
+} /* End of setSeq() */
+
+
+/** Returns sequence number in HOST byte order */
+u32 TCPHeader::getSeq() const {
+  return ntohl(h.th_seq);
+} /* End of getSeq() */
+
+
+/** Sets acknowledgement number.
+ *  @warning ACK number must be supplied in host byte order. This method
+ *  performs byte order conversion using htonl() */
+int TCPHeader::setAck(u32 p){
+  h.th_ack = htonl(p);
+  return OP_SUCCESS;
+} /* End of setAck() */
+
+
+/** Returns ACK number in HOST byte order */
+u32 TCPHeader::getAck() const {
+  return ntohl(h.th_ack);
+} /* End of getAck() */
+
+
+int TCPHeader::setOffset(u8 o){
+  assert(o <= 0x0f);
+  h.th_off = o;
+  return OP_SUCCESS;
+} /* End of setOffset() */
+
+
+int TCPHeader::setOffset(){
+  assert(tcpoptlen <= 40);
+  h.th_off = 5 + tcpoptlen/4;
+  return OP_SUCCESS;
+} /* End of setOffset() */
+
+
+/** Returns offset value */
+u8 TCPHeader::getOffset() const {
+  return h.th_off;
+} /* End of getOffset() */
+
+
+/* Sets the 4-bit reserved field (Note that there are not 4 reserved bits anymore
+ * as RFC 3540 introduces a new TCP flag, so calling this will overwrite
+ * the value of such flag. */
+int TCPHeader::setReserved(u8 r){
+  h.th_x2 = r;
+  return OP_SUCCESS;
+}
+
+
+u8 TCPHeader::getReserved() const {
+  return h.th_x2;
+}
+
+
+/** Sets TCP flags */
+int TCPHeader::setFlags(u8 f){
+  h.th_flags = f;
+  return OP_SUCCESS;
+} /* End of setFlags() */
+
+
+/** Returns the 8bit flags field of the TCP header */
+u8 TCPHeader::getFlags() const {
+  return h.th_flags;
+} /* End of getFlags() */
+
+
+/* Returns the 16bit flags field of the TCP header. As RFC 3540 defines a new
+ * flag (NS), we no longer can store all TCP flags in a single octet, so
+ * this method returns the flags as a two-octet unsigned integer. */
+u16 TCPHeader::getFlags16() const {
+  /* Obtain the value of dataoff+reserved+flags in host byte order */
+  u16 field=ntohs(*(u16 *)(((u8 *)&this->h)+12));
+  /* Erase the contents of the data offset field */
+  field = field & 0x0FFF;
+  return field;
+} /* End of getFlags16() */
+
+
+/** Sets flag CWR
+ *  @return Previous state of the flag */
+bool TCPHeader::setCWR(){
+  u8 prev = h.th_flags & TH_CWR;
+  h.th_flags |= TH_CWR;
+  return prev;
+} /* End of setCWR() */
+
+
+/** Unsets flag CWR
+ *  @return Previous state of the flag */
+bool TCPHeader::unsetCWR(){
+  u8 prev = h.th_flags & TH_CWR;
+  h.th_flags ^= TH_CWR;
+  return prev;
+} /* End of unsetCWR() */
+
+
+/** Get CWR flag */
+bool TCPHeader::getCWR() const {
+  return h.th_flags & TH_CWR;
+} /* End of getCWR() */
+
+
+/** Sets flag ECE/ECN
+ *  @return Previous state of the flag */
+bool TCPHeader::setECE(){
+  u8 prev = h.th_flags & TH_ECN;
+  h.th_flags |= TH_ECN;
+  return prev;
+} /* End of setECE() */
+
+
+/** Unsets flag ECE/ECN
+ *  @return Previous state of the flag */
+bool TCPHeader::unsetECE(){
+  u8 prev = h.th_flags & TH_ECN;
+  h.th_flags ^= TH_ECN;
+  return prev;
+} /* End of unsetECE() */
+
+
+/** Get CWR flag */
+bool TCPHeader::getECE() const {
+  return  h.th_flags & TH_ECN;
+} /* End of getECE() */
+
+
+/** Same as setECE() but with a different name since there are two possible
+ *  ways to call this flag
+ *  @return Previous state of the flag */
+bool TCPHeader::setECN(){
+  u8 prev = h.th_flags & TH_ECN;
+  h.th_flags |= TH_ECN;
+  return prev;
+} /* End of setECN() */
+
+
+/** Unsets flag ECE/ECN
+ *  @return Previous state of the flag */
+bool TCPHeader::unsetECN(){
+  u8 prev = h.th_flags & TH_ECN;
+  h.th_flags ^= TH_ECN;
+  return prev;
+} /* End of unsetECN() */
+
+
+/** Get ECN flag */
+bool TCPHeader::getECN() const {
+  return  h.th_flags & TH_ECN;
+} /* End of getECN() */
+
+
+/** Sets flag URG
+ *  @return Previous state of the flag */
+bool TCPHeader::setURG(){
+  u8 prev = h.th_flags & TH_URG;
+  h.th_flags |= TH_URG;
+  return prev;
+} /* End of setURG() */
+
+
+/** Unsets flag URG
+ *  @return Previous state of the flag */
+bool TCPHeader::unsetURG(){
+  u8 prev = h.th_flags & TH_URG;
+  h.th_flags ^= TH_URG;
+  return prev;
+} /* End of unsetURG() */
+
+
+/** Get URG flag */
+bool TCPHeader::getURG() const {
+  return  h.th_flags & TH_URG;
+} /* End of getURG() */
+
+
+/** Sets flag ACK
+ *  @return Previous state of the flag */
+bool TCPHeader::setACK(){
+  u8 prev = h.th_flags & TH_ACK;
+  h.th_flags |= TH_ACK;
+  return prev;
+} /* End of setACK() */
+
+
+/** Unsets flag ACK
+ *  @return Previous state of the flag */
+bool TCPHeader::unsetACK(){
+  u8 prev = h.th_flags & TH_ACK;
+  h.th_flags ^= TH_ACK;
+  return prev;
+} /* End of unsetACK() */
+
+
+/** Get ACK flag */
+bool TCPHeader::getACK() const {
+  return  h.th_flags & TH_ACK;
+} /* End of getACK() */
+
+
+/** Sets flag PSH
+ *  @return Previous state of the flag */
+bool TCPHeader::setPSH(){
+  u8 prev = h.th_flags & TH_PSH;
+  h.th_flags |= TH_PSH;
+  return prev;
+} /* End of setPSH() */
+
+
+/** Unsets flag PSH
+ *  @return Previous state of the flag */
+bool TCPHeader::unsetPSH(){
+  u8 prev = h.th_flags & TH_PSH;
+  h.th_flags ^= TH_PSH;
+  return prev;
+} /* End of unsetPSH() */
+
+
+/** Get PSH flag */
+bool TCPHeader::getPSH() const {
+  return  h.th_flags & TH_PSH;
+} /* End of getPSH() */
+
+
+/** Sets flag RST
+ *  @return Previous state of the flag */
+bool TCPHeader::setRST(){
+  u8 prev = h.th_flags & TH_RST;
+  h.th_flags |= TH_RST;
+  return prev;
+} /* End of setRST() */
+
+
+/** Unsets flag RST
+ *  @return Previous state of the flag */
+bool TCPHeader::unsetRST(){
+  u8 prev = h.th_flags & TH_RST;
+  h.th_flags ^= TH_RST;
+  return prev;
+} /* End of unsetRST() */
+
+
+/** Get RST flag */
+bool TCPHeader::getRST() const {
+  return  h.th_flags & TH_RST;
+} /* End of getRST() */
+
+
+/** Sets flag SYN
+ *  @return Previous state of the flag */
+bool TCPHeader::setSYN(){
+  u8 prev = h.th_flags & TH_SYN;
+  h.th_flags |= TH_SYN;
+  return prev;
+} /* End of setSYN() */
+
+
+/** Unsets flag SYN
+ *  @return Previous state of the flag */
+bool TCPHeader::unsetSYN(){
+  u8 prev = h.th_flags & TH_SYN;
+  h.th_flags ^= TH_SYN;
+  return prev;
+} /* End of unsetSYN() */
+
+
+/** Get SYN flag */
+bool TCPHeader::getSYN() const {
+  return  h.th_flags & TH_SYN;
+} /* End of getSYN() */
+
+
+/** Sets flag FIN
+ *  @return Previous state of the flag */
+bool TCPHeader::setFIN(){
+  u8 prev = h.th_flags & TH_FIN;
+  h.th_flags |= TH_FIN;
+  return prev;
+} /* End of setFIN() */
+
+
+/** Unsets flag FIN
+ *  @return Previous state of the flag */
+bool TCPHeader::unsetFIN(){
+  u8 prev = h.th_flags & TH_FIN;
+  h.th_flags ^= TH_FIN;
+  return prev;
+} /* End of unsetFIN() */
+
+
+/** Get FIN flag */
+bool TCPHeader::getFIN() const {
+  return  h.th_flags & TH_FIN;
+} /* End of getFIN() */
+
+
+/** Sets window size.
+ *  @warning Win number must be supplied in host byte order. This method
+ *  performs byte order conversion using htons() */
+int TCPHeader::setWindow(u16 p){
+   h.th_win = htons(p);
+  return OP_SUCCESS;
+} /* End of setWindow() */
+
+
+/** Returns window size in HOST byte order. */
+u16 TCPHeader::getWindow() const {
+  return ntohs(h.th_win);
+} /* End of getWindow() */
+
+
+/** Sets urgent pointer.
+ *  @warning Pointer must be supplied in host byte order. This method
+ *  performs byte order conversion using htons() */
+int TCPHeader::setUrgPointer(u16 l){
+  h.th_urp = htons(l);
+  return OP_SUCCESS;
+} /* End of setUrgPointer() */
+
+
+/** Returns Urgent Pointer in HOST byte order. */
+u16 TCPHeader::getUrgPointer() const {
+  return ntohs(h.th_urp);
+} /* End of getUrgPointer() */
+
+
+int TCPHeader::setSum(struct in_addr src, struct in_addr dst){
+  int bufflen;
+  u8 aux[ MAX_TCP_PAYLOAD_LEN ];
+  /* FROM: RFC 1323: TCP Extensions for High Performance, March 4, 2009
+   *
+   * "With IP Version 4, the largest amount of TCP data that can be sent in
+   *  a single packet is 65495 bytes (64K - 1 - size of fixed IP and TCP
+   *  headers)".
+   *
+   *  In theory TCP should not worry about the practical max payload length
+   *  because it is supposed to be independent of the network layer. However,
+   *  since TCP does not have any length field and we need to allocate a
+   *  buffer, we are using that value. (Note htat in UDPHeader.cc we do just
+   *  the opposite, forget about the practical limitation and allow the
+   *  theorical limit for the payload.                                       */
+  h.th_sum = 0;
+
+  /* Copy packet contents to a buffer */
+  bufflen=dumpToBinaryBuffer(aux, MAX_TCP_PAYLOAD_LEN);
+
+  /* Compute checksum */
+  h.th_sum = ipv4_pseudoheader_cksum(&src, &dst, IPPROTO_TCP, bufflen, (char *)aux);
+
+  return OP_SUCCESS;
+} /* End of setSum() */
+
+
+/** @warning Sum is set to supplied value with NO byte ordering conversion
+ *  performed. */
+int TCPHeader::setSum(u16 s){
+  h.th_sum = s;
+  return OP_SUCCESS;
+} /* End of setSum() */
+
+
+int TCPHeader::setSum(){
+  this->h.th_sum=0;
+  this->h.th_sum = this->compute_checksum();
+  return OP_SUCCESS;
+} /* End of setSum() */
+
+
+/** Set the TCP checksum field to a random value, which may accidentally
+  * match the correct checksum */
+int TCPHeader::setSumRandom(){
+  h.th_sum=get_random_u16();
+  return OP_SUCCESS;
+} /* End of setSumRandom() */
+
+/** Set the TCP checksum field to a random value. It takes the source and
+  * destination address to make sure the random generated sum does not
+  * accidentally match the correct checksum. This function only handles
+  * IPv4 address. */
+int TCPHeader::setSumRandom(struct in_addr source, struct in_addr destination){
+  u16 correct_csum=0;
+  /* Compute the correct checksum */
+  this->setSum(source, destination);
+  correct_csum=this->getSum();
+  /* Generate numbers until one does not match the correct sum */
+  while( (h.th_sum=get_random_u16())==correct_csum);
+  return OP_SUCCESS;
+} /* End of setSumRandom() */
+
+
+/** Returns the TCP checksum field in NETWORK byte order */
+u16 TCPHeader::getSum() const {
+  return h.th_sum;
+} /* End of getSum() */
+
+
+/* Copies the supplied buffer into the TCP options field. Note that the supplied
+ * buffer MUST NOT exceed MAX_TCP_OPTIONS_LEN octets and should be a multiple of
+ * four. If it is not a multiple of four, no error will be returned but the
+ * behaviour is unspecified. If this method is called passing NULL and zero
+ * ( t.setOptions(NULL, 0), any existing options are cleared, and the object's
+ * internal length is updated accordingly. Also, note that a call to setOptions()
+ * involves an automatic call to setOffset(), which updates the Offset field
+ * to take into account the new header length. If you need to set a bogus
+ * data offset, you can do so after calling setOptions(), but not before.
+ * It returns OP_SUCCESS on success and OP_FAILURE in case of error */
+int TCPHeader::setOptions(const u8 *optsbuff, size_t optslen){
+  /* NULL and length=0 means delete existing options */
+  if(optsbuff==NULL && optslen==0){
+    this->tcpoptlen=0;
+    this->length=TCP_HEADER_LEN;
+    memset(this->h.options, 0, MAX_TCP_OPTIONS_LEN);
+    return OP_SUCCESS;
+
+  /* Make sure params are safe to use */
+  }else if(optsbuff==NULL || optslen==0 || optslen>MAX_TCP_OPTIONS_LEN){
+    return OP_FAILURE;
+
+  /* Copy supplied buffer into the options field, and update the offset field. */
+  }else{
+    memcpy(this->h.options, optsbuff, optslen);
+    this->tcpoptlen=optslen;
+    this->length=TCP_HEADER_LEN+optslen;
+    this->setOffset();
+    return OP_SUCCESS;
+  }
+} /* End of setOptions() */
+
+
+/* Returns a pointer to the start of the TCP options field. If the supplied
+ * "optslen" pointer is not NULL, the length of the options will be stored
+ * there. */
+const u8 *TCPHeader::getOptions(size_t *optslen) const {
+  if(optslen!=NULL)
+    *optslen=this->tcpoptlen;
+  return this->h.options;
+} /* End of getOptions() */
+
+
+/* Returns a textual representation of a TCP Options code */
+const char *TCPHeader::optcode2str(u8 optcode){
+  switch(optcode){
+    case TCPOPT_EOL:
+      return "EOL";
+    case TCPOPT_NOOP:
+      return "NOOP";
+    case TCPOPT_MSS:
+      return "MSS";
+    case TCPOPT_WSCALE:
+      return "WScale";
+    case TCPOPT_SACKOK:
+     return "SAckOK";
+    case TCPOPT_SACK:
+      return "SAck";
+    case TCPOPT_ECHOREQ:
+     return "EchoReq";
+    case TCPOPT_ECHOREP:
+     return "EchoRep";
+    case TCPOPT_TSTAMP:
+     return "TStamp";
+    case TCPOPT_POCP:
+      return "POCP";
+    case TCPOPT_POSP:
+     return "POSP";
+    case TCPOPT_CC:
+     return "CC";
+    case TCPOPT_CCNEW:
+     return "CC.NEW";
+    case TCPOPT_CCECHO:
+     return "CC.ECHO";
+    case TCPOPT_ALTCSUMREQ:
+      return "AltSumReq";
+    case TCPOPT_ALTCSUMDATA:
+     return "AltSumData";
+    case TCPOPT_MD5:
+      return "MD5";
+    case TCPOPT_SCPS:
+      return "SCPS";
+    case TCPOPT_SNACK:
+      return "SNAck";
+    case TCPOPT_QSRES:
+     return "QStart";
+    case TCPOPT_UTO:
+     return "UTO";
+    case TCPOPT_AO:
+     return "AO";
+    default:
+      return "Unknown";
+  }
+} /* End of optcode2str() */
+
+
+bool TCPOptions::fromTCPPacket(const u8 *tcppkt, int tcplen)
+{
+  tcpopts = NULL;
+  optslen = 0;
+  if (tcplen < TCP_HEADER_LEN)
+    return false;
+
+  u8 data_offset = tcppkt[12] >> 4;
+  if (data_offset < 5)
+    return false;
+
+  tcpopts = tcppkt + TCP_HEADER_LEN;
+  optslen = MIN(4 * data_offset, tcplen) - TCP_HEADER_LEN;
+  if (optslen == 0)
+    tcpopts = NULL;
+  return true;
+}
+
+bool TCPOptions::fromBuffer(const u8 *tcpoptions, int optionslen)
+{
+  if (!tcpoptions || optionslen <= 0)
+    return false;
+  tcpopts = tcpoptions;
+  optslen = optionslen;
+  return true;
+}
+
+bool TCPOptions::fromTCPHeader(const TCPHeader &T)
+{
+  size_t len = 0;
+  tcpopts = T.getOptions(&len);
+  if (len > INT_MAX) {
+    tcpopts = NULL;
+    return false;
+  }
+  optslen = len;
+  return tcpopts != NULL;
+}
+
+bool TCPOptions::foreachOpt(tcpopt_callback cb, void *ctx) const
+{
+  const u8 *p = tcpopts;
+  int len = optslen;
+  while (len > 0) {
+    int op = p[0];
+    int oplen = 1;
+    switch (op) {
+      case 0: /* TCPOPT_EOL */
+      case 1: /* TCPOPT_NOP */
+        break;
+      default: /* TLV option */
+        if (len < 2)
+          return false;
+        oplen = p[1];
+        if (oplen < 2)
+          return false; /* No infinite loops, please */
+        if (oplen > len)
+          return false; /* Not enough space */
+        break;
+    }
+    if (!cb(op, oplen, p, ctx))
+      return true;
+    len -= oplen;
+    p += oplen;
+  }
+  return len == 0;
+}
+

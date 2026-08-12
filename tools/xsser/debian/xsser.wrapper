@@ -1,0 +1,3 @@
+#!/bin/sh
+cd /usr/share/xsser || exit 1
+exec python3 ./xsser "$@"

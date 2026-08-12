@@ -1,0 +1,156 @@
+[submodule "submodules/search/awesome-shodan-queries"]
+	path = submodules/search/awesome-shodan-queries
+	url = https://github.com/jakejarvis/awesome-shodan-queries.git
+[submodule "submodules/privacy-protection/osint_stuff_tool_collection"]
+	path = submodules/privacy-protection/osint_stuff_tool_collection
+	url = https://github.com/cipher387/osint_stuff_tool_collection.git
+[submodule "submodules/curated/awesome-web-archiving"]
+	path = submodules/curated/awesome-web-archiving
+	url = https://github.com/iipc/awesome-web-archiving
+[submodule "submodules/curated/OSINT-Cheat-sheet"]
+	path = submodules/curated/OSINT-Cheat-sheet
+	url = https://github.com/Jieyab89/OSINT-Cheat-sheet.git
+[submodule "submodules/curated/osint4all"]
+	path = submodules/curated/osint4all
+	url = https://github.com/osint4all/osint4all.github.io.git
+[submodule "submodules/curated/prism-break"]
+	path = submodules/curated/prism-break
+	url = https://github.com/airborne-commando/prism-break.git
+[submodule "submodules/curated/OSINT-for-countries-V2.0"]
+	path = submodules/curated/OSINT-for-countries-V2.0
+	url = https://github.com/paulpogoda/OSINT-for-countries-V2.0.git
+[submodule "submodules/curated/The-OSINT-Toolbox"]
+	path = submodules/curated/The-OSINT-Toolbox
+	url = https://github.com/The-Osint-Toolbox/The-OSINT-Toolbox.git
+[submodule "submodules/curated/awesome-osint"]
+	path = submodules/curated/awesome-osint
+	url = https://github.com/jivoi/awesome-osint.git
+[submodule "submodules/extensions/firefox-facecheck-id"]
+	path = submodules/extensions/firefox-facecheck-id
+	url = https://github.com/airborne-commando/firefox-facecheck-id.git
+[submodule "submodules/extensions/usertoihsoyct"]
+	path = submodules/extensions/usertoihsoyct
+	url = https://github.com/airborne-commando/usertoihsoyct.git
+[submodule "submodules/userscripts/tampermonkey-collection"]
+	path = submodules/userscripts/tampermonkey-collection
+	url = https://github.com/airborne-commando/tampermonkey-collection.git
+[submodule "submodules/username-search/holehe"]
+	path = submodules/username-search/holehe
+	url = https://github.com/megadose/holehe.git
+[submodule "submodules/username-search/mcp-maigret"]
+	path = submodules/username-search/mcp-maigret
+	url = https://github.com/BurtTheCoder/mcp-maigret.git
+[submodule "submodules/username-search/maigret-night"]
+	path = submodules/username-search/maigret-night
+	url = https://github.com/airborne-commando/maigret-night.git
+[submodule "submodules/username-search/maigret"]
+	path = submodules/username-search/maigret
+	url = https://github.com/soxoj/maigret.git
+[submodule "submodules/username-search/no-shit-sherlock"]
+	path = submodules/username-search/no-shit-sherlock
+	url = https://github.com/airborne-commando/no-shit-sherlock.git
+[submodule "submodules/username-search/sherlock"]
+	path = submodules/username-search/sherlock
+	url = https://github.com/sherlock-project/sherlock.git
+[submodule "submodules/username-search/Crow"]
+	path = submodules/username-search/Crow
+	url = https://github.com/airborne-commando/Crow.git
+[submodule "submodules/username-search/blackbird"]
+	path = submodules/username-search/blackbird
+	url = https://github.com/p1ngul1n0/blackbird.git
+[submodule "submodules/username-search/osint-tools-mcp-server"]
+	path = submodules/username-search/osint-tools-mcp-server
+	url = https://github.com/frishtik/osint-tools-mcp-server.git
+[submodule "submodules/biometric/Social-Hunt"]
+	path = submodules/biometric/Social-Hunt
+	url = https://github.com/AfterPacket/Social-Hunt.git
+[submodule "submodules/biometric/facematch"]
+	path = submodules/biometric/facematch
+	url = https://github.com/airborne-commando/facematch.git
+[submodule "submodules/image-editing/stable-diffusion-webui"]
+	path = submodules/image-editing/stable-diffusion-webui
+	url = https://github.com/AUTOMATIC1111/stable-diffusion-webui.git
+[submodule "submodules/image-editing/SwarmUI"]
+	path = submodules/image-editing/SwarmUI
+	url = https://github.com/mcmonkeyprojects/SwarmUI
+[submodule "submodules/image-editing/iopaint-launcher"]
+	path = submodules/image-editing/iopaint-launcher
+	url = https://github.com/airborne-commando/iopaint-launcher.git
+[submodule "submodules/image-editing/DeepMosaics"]
+	path = submodules/image-editing/DeepMosaics
+	url = https://github.com/HypoX64/DeepMosaics.git
+[submodule "submodules/image-editing/de-pixelate_gaV-O6NPWrI"]
+	path = submodules/image-editing/de-pixelate_gaV-O6NPWrI
+	url = https://github.com/KoKuToru/de-pixelate_gaV-O6NPWrI.git
+[submodule "submodules/image-editing/fawkes"]
+	path = submodules/image-editing/fawkes
+	url = https://github.com/Shawn-Shan/fawkes.git
+[submodule "submodules/privacy-protection/user-email-gen"]
+	path = submodules/privacy-protection/user-email-gen
+	url = https://github.com/airborne-commando/user-email-gen.git
+[submodule "submodules/privacy-protection/Big-Ass-Data-Broker-Opt-Out-List"]
+	path = submodules/privacy-protection/Big-Ass-Data-Broker-Opt-Out-List
+	url = https://github.com/yaelwrites/Big-Ass-Data-Broker-Opt-Out-List.git
+[submodule "submodules/privacy-protection/opt-out-manual-2026"]
+	path = submodules/privacy-protection/opt-out-manual-2026
+	url = https://github.com/thumpersecure/opt-out-manual-2026.git
+[submodule "submodules/genealogy-history/awesome-genealogy"]
+	path = submodules/genealogy-history/awesome-genealogy
+	url = https://github.com/Panda-Lewandowski/awesome-genealogy.git
+[submodule "submodules/genealogy-history/awesome-genograms"]
+	path = submodules/genealogy-history/awesome-genograms
+	url = https://github.com/awesomedirectory/awesome-genograms.git
+[submodule "submodules/privacy-protection/monero"]
+	path = submodules/privacy-protection/monero
+	url = https://github.com/monero-project/monero.git
+[submodule "submodules/privacy-protection/monero-gui"]
+	path = submodules/privacy-protection/monero-gui
+	url = https://github.com/monero-project/monero-gui.git
+[submodule "submodules/privacy-protection/tails"]
+	path = submodules/privacy-protection/tails
+	url = https://gitlab.tails.boum.org/tails/tails.git
+[submodule "submodules/privacy-protection/radicle-dev"]
+	path = submodules/privacy-protection/radicle-dev
+	url = https://github.com/radicle-dev/.github.git
+[submodule "submodules/privacy-protection/whonix"]
+	path = submodules/privacy-protection/whonix
+	url = https://github.com/Whonix/.github.git
+[submodule "submodules/privacy-protection/monero-docs"]
+	path = submodules/privacy-protection/monero-docs
+	url = https://github.com/monero-project/monero-docs.git
+[submodule "submodules/privacy-protection/mullvad-app"]
+	path = submodules/privacy-protection/mullvad-app
+	url = https://github.com/mullvad/mullvadvpn-app.git
+[submodule "submodules/privacy-protection/cockli-cli"]
+	path = submodules/privacy-protection/cockli-cli
+	url = https://github.com/jumpfool/cockli-cli.git
+[submodule "submodules/lang/ita/GEOINTInvestigation"]
+	path = submodules/lang/ita/GEOINTInvestigation
+	url = https://github.com/CScorza/GEOINTInvestigation
+[submodule "submodules/Grey-Literature/uszipcode-project"]
+	path = submodules/Grey-Literature/uszipcode-project
+	url = https://github.com/MacHu-GWU/uszipcode-project.git
+[submodule "submodules/Grey-Literature/Zipcodes"]
+	path = submodules/Grey-Literature/Zipcodes
+	url = https://github.com/seanpianka/Zipcodes.git
+[submodule "submodules/Grey-Literature/us-zipcodes-congress"]
+	path = submodules/Grey-Literature/us-zipcodes-congress
+	url = https://github.com/OpenSourceActivismTech/us-zipcodes-congress.git
+[submodule "submodules/genealogy-history/genealogy"]
+	path = submodules/genealogy-history/genealogy
+	url = https://github.com/MGeurts/genealogy.git
+[submodule "submodules/genealogy-history/topola-viewer"]
+	path = submodules/genealogy-history/topola-viewer
+	url = https://github.com/PeWu/topola-viewer.git
+[submodule "submodules/genealogy-history/gramps-web"]
+	path = submodules/genealogy-history/gramps-web
+	url = https://github.com/gramps-project/gramps-web.git
+[submodule "submodules/genealogy-history/autoresearch-genealogy"]
+	path = submodules/genealogy-history/autoresearch-genealogy
+	url = https://github.com/mattprusak/autoresearch-genealogy.git
+[submodule "submodules/curated/awesome-privacy"]
+	path = submodules/curated/awesome-privacy
+	url = https://github.com/pluja/awesome-privacy.git
+[submodule "submodules/SOCMINT/Extraction/discordchatexporter"]
+	path = submodules/SOCMINT/Extraction/discordchatexporter
+	url = https://github.com/tyrrrz/discordchatexporter.git

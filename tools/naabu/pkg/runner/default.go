@@ -1,0 +1,34 @@
+package runner
+
+import (
+	"time"
+
+	"github.com/projectdiscovery/naabu/v2/pkg/scan"
+)
+
+const (
+	DefaultPortTimeoutSynScan     = time.Second
+	DefaultPortTimeoutConnectScan = time.Duration(3 * time.Second)
+
+	DefaultRateSynScan     = 1000
+	DefaultRateConnectScan = 1500
+
+	DefaultRetriesSynScan     = 3
+	DefaultRetriesConnectScan = 3
+
+	SynScan     = scan.TypeSyn
+	ConnectScan = scan.TypeConnect
+
+	DefautStatsInterval = 5
+
+	// DefaultThreadsNum is the default number of threads to use for the scan
+	// the default value of 25 is a good balance between performance and resource usage
+	DefaultThreadsNum = 25
+
+	// defaultWarmUpTime is the default seconds between scan phases.
+	defaultWarmUpTime = 2
+
+	// DefaultTimingTemplate is the default nmap-style timing level (T3, normal),
+	// which maps to naabu's historical defaults.
+	DefaultTimingTemplate = 3
+)

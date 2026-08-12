@@ -1,0 +1,495 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) Micah Lee, et al.
+# This file is distributed under the same license as the OnionShare package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2020.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: OnionShare 2.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-06-01 19:58+0530\n"
+"PO-Revision-Date: 2026-03-28 16:09+0000\n"
+"Last-Translator: Maryam Azad <hannahperez8@protonmail.com>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: fa\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n > 1;\n"
+"X-Generator: Weblate 5.17-dev\n"
+"Generated-By: Babel 2.9.0\n"
+
+#: ../../source/tor.rst:2
+msgid "Connecting to Tor"
+msgstr "برقراری ارتباط به Tor"
+
+#: ../../source/tor.rst:4
+msgid ""
+"When OnionShare starts, it will show you a screen asking you to connect to "
+"the Tor network."
+msgstr ""
+"هنگامی که OnionShare شروع می شود، صفحه ای را به شما نشان می دهد که از شما می "
+"خواهد به شبکه Tor متصل شوید."
+
+#: ../../source/tor.rst:8
+msgid ""
+"You can toggle on the switch \"Connect to Tor automatically\" before "
+"clicking \"Connect to Tor\". This means that next time OnionShare starts, it "
+"will automatically connect with its Tor connection settings from the last "
+"session, instead of presenting you with the connection options. If the "
+"connection fails, you can still try bridges or reconfigure Tor via the "
+"\"Network Settings\" button."
+msgstr ""
+"می‌توانید قبل از کلیک روی «اتصال به Tor»، گزینه «اتصال خودکار به Tor» را فعال "
+"کنید. این یعنی دفعه بعد که OnionShare شروع به کار می‌کند، به جای نمایش "
+"گزینه‌های اتصال، به طور خودکار با تنظیمات اتصال Tor خود از آخرین جلسه متصل "
+"می‌شود. اگر اتصال برقرار نشد، همچنان می‌توانید از طریق دکمه «تنظیمات شبکه» "
+"پل‌ها را امتحان کنید یا Tor را دوباره پیکربندی کنید."
+
+#: ../../source/tor.rst:11
+msgid ""
+"You can click \"Connect to Tor\" to begin the connection process. If there "
+"are no problems with your network, including any attempts to block your "
+"access to the Tor network, this should hopefully work the first time."
+msgstr ""
+"برای شروع فرآیند اتصال می‌توانید روی «اتصال به Tor» کلیک کنید. اگر مشکلی در "
+"شبکه شما وجود نداشته باشد، از جمله هرگونه تلاشی برای مسدود کردن دسترسی شما "
+"به شبکه Tor، این کار در همان بار اول باید جواب بدهد."
+
+#: ../../source/tor.rst:13
+msgid ""
+"Or, if you want to manually configure Bridges or other Tor settings before "
+"you connect, you can click \"Network Settings\"."
+msgstr ""
+"یا اگر می‌خواهید قبل از اتصال، پل‌ها یا سایر تنظیمات Tor را به صورت دستی تنظیم "
+"کنید، می‌توانید روی «تنظیمات شبکه» کلیک کنید."
+
+#: ../../source/tor.rst:16
+msgid "Automatic censorship circumvention"
+msgstr "دور زدن خودکار سانسور"
+
+#: ../../source/tor.rst:18
+msgid ""
+"When you click \"Connect to Tor\", if OnionShare fails to connect, it might "
+"be because Tor is censored in your country or on your local network."
+msgstr ""
+"وقتی روی «اتصال به Tor» کلیک می‌کنید، اگر OnionShare نتواند متصل شود، ممکن "
+"است به این دلیل باشد که Tor در کشور شما یا در شبکه محلی شما سانسور شده است."
+
+#: ../../source/tor.rst:20
+msgid "If this occurs, you will have these choices:"
+msgstr "اگر این اتفاق بیفتد، این انتخاب‌ها را خواهید داشت:"
+
+#: ../../source/tor.rst:22
+msgid "Try again without a bridge"
+msgstr "دوباره بدون پل امتحان کنید"
+
+#: ../../source/tor.rst:23
+msgid ""
+"Automatically determine my country from my IP address for bridge settings"
+msgstr "برای تنظیمات پل، کشور من را به طور خودکار از روی آدرس IP من تعیین کن"
+
+#: ../../source/tor.rst:24
+msgid "Manually select my country for bridge settings"
+msgstr "برای تنظیمات پل، کشور من را به صورت دستی انتخاب کنید"
+
+#: ../../source/tor.rst:28
+msgid ""
+"If you choose the \"Try again without a bridge\" option, OnionShare will "
+"retry connecting to Tor like normal, without attempting to bypass censorship."
+msgstr ""
+"اگر گزینه «دوباره بدون پل امتحان کنید» را انتخاب کنید، OnionShare دوباره سعی "
+"می‌کند مانند حالت عادی به Tor متصل شود، بدون اینکه سعی کند سانسور را دور بزند."
+
+#: ../../source/tor.rst:30
+msgid ""
+"The other two options will attempt to automatically bypass censorship using "
+"Tor bridges. If your network provider is blocking access to the Tor network, "
+"you can hopefully still connect to a Tor bridge, which will then connect you "
+"to the Tor network, circumventing the censorship. Both of these options use "
+"the Tor Project's Censorship Circumvention API to provide you with bridge "
+"settings that should work for you. OnionShare will temporarily use the `Meek "
+"<https://gitlab.torproject.org/legacy/trac/-/wikis/doc/meek/>`_ domain-"
+"fronting proxy to make a non-Tor connection from your computer to Tor's "
+"Censorship Circumvention API. The Meek proxy hides the fact that you are "
+"trying to find a way to connect to Tor."
+msgstr ""
+"دو گزینه دیگر سعی می کنند به طور خودکار سانسور را با استفاده از پل های Tor "
+"دور بزنند. اگر ارائه‌دهنده شبکه شما دسترسی به شبکه Tor را مسدود می‌کند، "
+"امیدواریم همچنان به پل Tor متصل شوید، که سپس شما را به شبکه Tor متصل می‌کند و "
+"سانسور را دور می‌زند. هر دوی این گزینه ها از API Censorship Circumvention "
+"پروژه Tor استفاده می کنند تا تنظیمات پل را به شما ارائه دهند که باید برای "
+"شما کار کند. OnionShare به طور موقت از پروکسی «Meek <https://"
+"gitlab.torproject.org/legacy/trac/-/wikis/doc/meek/>»_ برای ایجاد یک اتصال "
+"غیر Tor از رایانه شما به Tor's Censorship Circumvention API استفاده می کند. "
+"پروکسی Meek این واقعیت را پنهان می کند که شما در تلاش برای یافتن راهی برای "
+"اتصال به Tor هستید."
+
+#: ../../source/tor.rst:36
+msgid ""
+"If you choose \"Automatically determine my country from my IP address for "
+"bridge settings\", the Censorship Circumvention API will consider your IP "
+"address (yes, your real IP address) to determine what country you might "
+"reside in. Based on the country information, the API will try to "
+"automatically find bridges that suit your location."
+msgstr ""
+"اگر گزینه «تعیین خودکار کشور من از روی آدرس IP من برای تنظیمات پل» را انتخاب "
+"کنید، API دور زدن سانسور، آدرس IP شما (بله، آدرس IP واقعی شما) را در نظر "
+"می‌گیرد تا کشوری را که ممکن است در آن ساکن باشید، تعیین کند. بر اساس اطلاعات "
+"کشور، API سعی می‌کند به طور خودکار پل‌هایی را پیدا کند که با موقعیت مکانی شما "
+"مطابقت دارند."
+
+#: ../../source/tor.rst:41
+msgid ""
+"If you choose \"Manually select my country for bridge settings\", the "
+"Censorship API will find the bridges that suit the country that you "
+"specified."
+msgstr ""
+"اگر گزینه «انتخاب دستی کشور برای تنظیمات پل» را انتخاب کنید، API سانسور، "
+"پل‌هایی که با کشوری که مشخص کرده‌اید مطابقت دارند، را پیدا خواهد کرد."
+
+#: ../../source/tor.rst:46
+msgid "How automatic censorship circumvention works"
+msgstr "نحوه‌ی عملکرد دور زدن خودکار سانسور"
+
+#: ../../source/tor.rst:48
+msgid ""
+"If the Censorship Circumvention API finds bridges that it believes will suit "
+"you, OnionShare will try to reconnect to Tor using those bridges. If the API "
+"does not find any bridges for your location, OnionShare will ask the API for "
+"\"fallback\" options, and then try to reconnect using those."
+msgstr ""
+"اگر API دور زدن سانسور، پل‌هایی را پیدا کند که به نظرش برای شما مناسب باشد، "
+"OnionShare سعی می‌کند با استفاده از آن پل‌ها دوباره به Tor متصل شود. اگر API "
+"هیچ پل ارتباطی برای موقعیت مکانی شما پیدا نکند، OnionShare از API گزینه‌های "
+"\"جایگزین\" را درخواست می‌کند و سپس سعی می‌کند با استفاده از آنها دوباره متصل "
+"شود."
+
+#: ../../source/tor.rst:50
+msgid ""
+"If for some reason OnionShare fails to connect to the Censorship API itself, "
+"or if the API returns an error message, OnionShare will attempt to use the "
+"obfs4 built-in bridges."
+msgstr ""
+"اگر به هر دلیلی OnionShare نتواند به خود API سانسور متصل شود، یا اگر API "
+"پیام خطایی را برگرداند، OnionShare سعی خواهد کرد از پل‌های داخلی obfs4 "
+"استفاده کند."
+
+#: ../../source/tor.rst:52
+msgid ""
+"It's important to note that the requests to the Censorship Circumvention API "
+"do not go over the Tor network (because if you could connect to Tor already, "
+"you wouldn't need to connect to the API)."
+msgstr ""
+"لازم به ذکر است که درخواست‌ها به API برای دور زدن سانسور از طریق شبکه Tor "
+"ارسال نمی‌شوند (زیرا اگر از قبل می‌توانستید به Tor متصل شوید، نیازی به اتصال "
+"به API ندارید)."
+
+#: ../../source/tor.rst:54
+msgid ""
+"Even though it's hard for an adversary to discover where the Meek request is "
+"going, this may still be risky for some users. Therefore, it is an opt-in "
+"feature. The use of Meek and non-torified network requests are limited only "
+"to making one or two requests to the Censorship Circumvention API. Then Meek "
+"is stopped, and all further network requests happen over the Tor network."
+msgstr ""
+"اگرچه برای یک مهاجم دشوار است که بفهمد درخواست Meek به کجا می‌رود، اما این "
+"ممکن است همچنان برای برخی از کاربران خطرناک باشد. بنابراین، این یک ویژگی "
+"اختیاری است. استفاده از Meek و درخواست‌های شبکه‌ای بدون رمزگذاری فقط به ارسال "
+"یک یا دو درخواست به API برای دور زدن سانسور محدود می‌شود. سپس Meek متوقف "
+"می‌شود و تمام درخواست‌های بعدی شبکه از طریق شبکه Tor انجام می‌شود."
+
+#: ../../source/tor.rst:56
+msgid ""
+"If you are uncomfortable with making a request that doesn't go over the Tor "
+"network, you can click \"Network Settings\" (or the Settings icon in the "
+"bottom right corner, followed by the Tor Settings tab in the screen that "
+"appears), and manually configure bridges. After you save any bridge "
+"settings, OnionShare will try to reconnect using those bridges."
+msgstr ""
+"اگر با ارسال درخواستی که از طریق شبکه Tor انجام نمی‌شود، راحت نیستید، "
+"می‌توانید روی «تنظیمات شبکه» (یا نماد تنظیمات در گوشه پایین سمت راست، و به "
+"دنبال آن تب تنظیمات Tor در صفحه نمایش داده شده) کلیک کنید و پل‌ها را به صورت "
+"دستی پیکربندی کنید. پس از ذخیره تنظیمات پل، OnionShare سعی می‌کند با استفاده "
+"از آن پل‌ها دوباره متصل شود."
+
+#: ../../source/tor.rst:59
+msgid "Manually configure Tor settings"
+msgstr "تنظیمات Tor را به صورت دستی تنظیم کنید"
+
+#: ../../source/tor.rst:61
+msgid ""
+"You can get to the Tor settings by clicking \"Network Settings\" on the "
+"welcome screen, or by clicking the \"⚙\" icon in the bottom-right corner of "
+"the application, and then switch to the Tor Settings tab in the screen that "
+"appears."
+msgstr ""
+"می‌توانید با کلیک روی «تنظیمات شبکه» در صفحه خوشامدگویی، یا با کلیک روی نماد "
+"«⚙» در گوشه پایین سمت راست برنامه، به تنظیمات Tor دسترسی پیدا کنید و سپس در "
+"صفحه‌ای که ظاهر می‌شود، به تب تنظیمات Tor بروید."
+
+#: ../../source/tor.rst:65
+msgid ""
+"Here are the different ways you can configure OnionShare to connect to Tor:"
+msgstr ""
+"در اینجا روش‌های مختلفی که می‌توانید OnionShare را برای اتصال به Tor تنظیم "
+"کنید، آورده شده است:"
+
+#: ../../source/tor.rst:68
+msgid "Use the Tor version built into OnionShare"
+msgstr "از نسخه Tor که در OnionShare تعبیه شده است استفاده کنید"
+
+#: ../../source/tor.rst:70
+msgid ""
+"This is the default, simplest and most reliable way that OnionShare connects "
+"to Tor. For this reason, it's recommended for most users."
+msgstr ""
+"این پیش‌گزینه، ساده‌ترین و مطمئن‌ترین روشی است که OnionShare به Tor متصل می‌شود. "
+"به همین دلیل، برای اکثر کاربران توصیه می شود."
+
+#: ../../source/tor.rst:73
+msgid ""
+"When you open OnionShare, it launches an already configured ``tor`` process "
+"in the background for OnionShare to use. It doesn't interfere with other "
+"``tor`` processes on your computer, so you can use the Tor Browser or the "
+"system ``tor`` on their own."
+msgstr ""
+"هنگامی که OnionShare را باز می کنید، آن یک فرآیند ``tor`` از قبل تنطیم شده "
+"را در پس زمینه برای استفاده OnionShare راه اندازی می کند. با سایر فرآیندهای "
+"``tor`` در رایانه شما تداخلی ایجاد نمی کند، بنابراین می توانید از مرورگر Tor "
+"یا سیستم ``tor`` به تنهایی استفاده کنید."
+
+#: ../../source/tor.rst:76
+msgid "**Using bridges**"
+msgstr "**استفاده از پل ها**"
+
+#: ../../source/tor.rst:78
+msgid ""
+"To use a bridge, you must select \"Use the Tor version built into "
+"OnionShare\" and check the \"Use a bridge\" checkbox."
+msgstr ""
+"برای استفاده از پل، باید \"استفاده از نسخه Tor ساخته شده در OnionShare\" را "
+"انتخاب کنید و کادر \"استفاده از یک پل\" را چک بزنید."
+
+#: ../../source/tor.rst:80
+msgid ""
+"Try using a built-in bridge first. Using `obfs4` or `snowflake` bridges is "
+"recommended over using `meek-azure`."
+msgstr ""
+"ابتدا از یک پل داخلی ساخته شده استفاده کنید. استفاده از پل های `obfs4` یا "
+"`snowflake` پیش از استفاده از `Meek-Azure` توصیه می شود."
+
+#: ../../source/tor.rst:84
+msgid ""
+"If using a built-in bridge doesn't work, you can request a bridge from "
+"torproject.org. You will have to solve a CAPTCHA in order to request a "
+"bridge. (This makes it more difficult for governments or ISPs to block "
+"access to Tor bridges.)"
+msgstr ""
+"اگر استفاده از پل داخلی کار نمی کند، می توانید یک پل را از torproject.org "
+"درخواست کنید. برای درخواست پل، باید یک CAPTCHA را حل کنید. (این امر مسدود "
+"کردن دسترسی به پل های Tor را برای دولت ها یا ISP ها دشوارتر می کند.)"
+
+#: ../../source/tor.rst:88
+msgid ""
+"You also have the option of using a bridge that you learned about from a "
+"trusted source."
+msgstr ""
+"شما همچنین می‌توانید از پلی که از یک منبع معتبر در مورد آن اطلاعات کسب "
+"کرده‌اید، استفاده کنید."
+
+#: ../../source/tor.rst:91
+msgid "Attempt auto-configuration with Tor Browser"
+msgstr "تلاش برای پیکربندی خودکار با مرورگر Tor"
+
+#: ../../source/tor.rst:93
+msgid ""
+"If you have `downloaded the Tor Browser <https://www.torproject.org>`_ and "
+"don't want two ``tor`` processes running, you can use the ``tor`` process "
+"from the Tor Browser. Keep in mind you need to keep Tor Browser open in the "
+"background while you're using OnionShare for this to work."
+msgstr ""
+"اگر `مرورگر Tor را <https://www.torproject.org>`_ دانلود کرده اید و نمی "
+"خواهید دو فرآیند ``tor`` اجرا شود، می توانید از فرآیند``tor`` از مرورگر Tor "
+"استفاده کنید. به خاطر داشته باشید که برای این کار باید مرورگر Tor را در "
+"پس‌زمینه باز نگه دارید تا از OnionShare استفاده کنید."
+
+#: ../../source/tor.rst:97
+msgid "Using a system ``tor`` in Windows"
+msgstr "استفاده از سیستم ``tor`` در ویندوز"
+
+#: ../../source/tor.rst:99
+msgid ""
+"This is fairly advanced. You'll need to know how edit plaintext files and do "
+"stuff as an administrator."
+msgstr ""
+"این نسبتاً پیشرفته است. شما باید بدانید که چگونه فایل‌های متن ساده را ویرایش "
+"کنید و به‌عنوان ادمین کارها را انجام دهید."
+
+#: ../../source/tor.rst:101
+msgid ""
+"Download the Tor Windows Expert Bundle `from the Tor website <https://"
+"www.torproject.org/download/tor/>`_. Extract the compressed file and copy "
+"the extracted folder to ``C:\\Program Files (x86)\\`` Rename the extracted "
+"folder with ``Data`` and ``Tor`` in it to ``tor-win32``."
+msgstr ""
+"بسته نرم افزاری Tor Windows Expert را `از وب سایت Tor <https://"
+"www.torproject.org/download/tor/>`_ دانلود کنید. فایل فشرده شده را استخراج "
+"کنید و پوشه استخراج شده را در ``C:\\Program Files (x86)`` کپی کنید و فایل "
+"های استخراج شده با نام های``Data`` و ``Tor`` را تغییر نام بدهید به``tor-"
+"win32``."
+
+#: ../../source/tor.rst:105
+msgid ""
+"Make up a control port password. (Using 7 words in a sequence like "
+"``comprised stumble rummage work avenging construct volatile`` is a good "
+"idea for a password.) Now open a command prompt (``cmd``) as an "
+"administrator, and use ``tor.exe --hash-password`` to generate a hash of "
+"your password. For example::"
+msgstr ""
+"یک رمز عبور پورت کنترل ایجاد کنید. (استفاده از 7 کلمه در دنباله‌هم "
+"مانند``Comprised Stumble Rummage Work Avenging Build Volatile`` ایده خوبی "
+"برای رمز عبور است.) اکنون یک خط-فرمان (``cmd``) را به عنوان ادمین باز کنید و "
+"از ``tor.exe --hash-password`` برای ایجاد هش رمز عبور خود استفاده کنید. به "
+"عنوان مثال::"
+
+#: ../../source/tor.rst:112
+msgid ""
+"The hashed password output is displayed after some warnings (which you can "
+"ignore). In the case of the above example, it is "
+"``16:00322E903D96DE986058BB9ABDA91E010D7A863768635AC38E213FDBEF``."
+msgstr ""
+"خروجی رمز عبور هش شده پس از چند هشدار (که می توانید نادیده بگیرید) نمایش "
+"داده می شود. در مورد مثال بالا، "
+"``16:00322E903D96DE986058BB9ABDA91E010D7A863768635AC38E213FDBEF`` است."
+
+#: ../../source/tor.rst:114
+msgid ""
+"Now create a new text file at ``C:\\Program Files (x86)\\tor-win32\\torrc`` "
+"and put your hashed password output in it, replacing the "
+"``HashedControlPassword`` with the one you just generated::"
+msgstr ""
+"اکنون یک فایل متنی جدید در ``C:\\Program Files (x86)\\tor-win32\\torrc`` "
+"ایجاد کنید و خروجی رمز عبور هش شده خود را در آن قرار دهید و "
+"``HashedControlPassword`` را با چیزی که ایجاد کرده اید جایگزین کنید:"
+
+#: ../../source/tor.rst:119
+msgid ""
+"In your administrator command prompt, install ``tor`` as a service using the "
+"appropriate ``torrc`` file you just created (as described in `<https://"
+"2019.www.torproject.org/docs/faq.html.en#NTService>`_). Like this::"
+msgstr ""
+"در خط-فرمان ادمین خود، ``tor`` را به‌عنوان یک سرویس با استفاده از "
+"فایل``torrc`` مناسبی که ایجاد کرده‌اید نصب کنید (همانطور که در `<https://"
+"2019.www.torproject.org/docs/faq.html.en#NTService>`_ توضیح داده شده است). "
+"مثل این::"
+
+#: ../../source/tor.rst:123
+msgid "You are now running a system ``tor`` process in Windows!"
+msgstr "شما اکنون در حال اجرای یک فرآیند سیستمی ``tor`` در ویندوز هستید!"
+
+#: ../../source/tor.rst:125
+msgid ""
+"Open OnionShare, click the \"⚙\" icon in it, and switch to the Tor Settings "
+"tab. Under \"How should OnionShare connect to Tor?\" choose \"Connect using "
+"control port\", and set \"Control port\" to ``127.0.0.1`` and \"Port\" to "
+"``9051``. Under \"Tor authentication settings\" choose \"Password\" and set "
+"the password to the control port password you picked above. Click the \"Test "
+"Connection to Tor\" button. If all goes well, you should see \"Connected to "
+"the Tor controller\"."
+msgstr ""
+"OnionShare را باز کنید، روی نماد \"⚙\" در آن کلیک کنید و به تب تنظیمات Tor "
+"بروید. در بخش «چگونه باید OnionShare به Tor متصل شود؟» «اتصال با استفاده از "
+"پورت کنترل» را انتخاب کنید و «پورت کنترل» را روی ``127.0.0.1`` و «پورت» را "
+"روی ``9051`` تنظیم کنید. در قسمت «تنظیمات احراز هویت Tor» گزینه \"رمزعبور\" "
+"را انتخاب کنید و رمز عبور را روی رمز عبور پورت کنترلی که در بالا انتخاب "
+"کردید تنظیم کنید. روی دکمه \"تست اتصال به Tor\" کلیک کنید. اگر همه چیز خوب "
+"پیش برود، باید \"متصل به کنترلر Tor\" را ببینید."
+
+#: ../../source/tor.rst:134
+msgid "Using a system ``tor`` in macOS"
+msgstr "استفاده از سیستم ``tor`` در macOS"
+
+#: ../../source/tor.rst:136
+msgid ""
+"First, install `Homebrew <https://brew.sh/>`_ if you don't already have it, "
+"and then install Tor::"
+msgstr ""
+"ابتدا `Homebrew <https://brew.sh/>`_ را نصب کنید، اگر از قبل آن را ندارید، و "
+"سپسTor::"
+
+#: ../../source/tor.rst:140
+msgid "Now configure Tor to allow connections from OnionShare::"
+msgstr "اکنون Tor را پیکربندی کنید تا اتصالات از OnionShare را مجاز کند::"
+
+#: ../../source/tor.rst:147
+msgid "And start the system Tor service::"
+msgstr "و سیستم سرویس Tor را راه اندازی کنید::"
+
+#: ../../source/tor.rst:151
+msgid ""
+"Open OnionShare, click the \"⚙\" icon in it, and switch to the Tor Settings "
+"tab. Under \"How should OnionShare connect to Tor?\" choose \"Connect using "
+"socket file\", and set the socket file to be ``/usr/local/var/run/tor/"
+"control.socket``. Under \"Tor authentication settings\" choose \"No "
+"authentication, or cookie authentication\". Click the \"Test Connection to "
+"Tor\" button."
+msgstr ""
+"OnionShare را باز کنید، روی نماد \"⚙\" در آن کلیک کنید و به تب تنظیمات Tor "
+"بروید. در بخش «چگونه باید OnionShare به Tor متصل شود؟» \"اتصال با استفاده از "
+"فایل سوکت\" را انتخاب کنید و فایل سوکت را روی``/usr/local/var/run/tor/"
+"control.socket`` تنظیم کنید. در بخش «تنظیمات احراز هویت Tor»، «بدون احراز "
+"هویت، یا احراز هویت کوکی» را انتخاب کنید. روی دکمه \"تست اتصال به Tor\" کلیک "
+"کنید."
+
+#: ../../source/tor.rst:157 ../../source/tor.rst:177
+msgid "If all goes well, you should see \"Connected to the Tor controller\"."
+msgstr "اگر همه چیز خوب پیش برود، باید \"متصل به کنترلر Tor\" را ببینید."
+
+#: ../../source/tor.rst:160
+msgid "Using a system ``tor`` in Linux"
+msgstr "استفاده از سیستم ``tor`` در Linux"
+
+#: ../../source/tor.rst:162
+msgid ""
+"First, install the ``tor`` package. If you're using Debian, Ubuntu, or a "
+"similar Linux distro, It is recommended to use the Tor Project's `official "
+"repository <https://support.torproject.org/apt/tor-deb-repo/>`_."
+msgstr ""
+"ابتدا بسته ``tor`` را نصب کنید. اگر از Debian، Ubuntu یا یک توزیع Linux "
+"مشابه استفاده می‌کنید، توصیه می‌شود از `مخزن رسمی <https://"
+"support.torproject.org/apt/tor-deb-repo/>`_ پروژه Tor استفاده کنید."
+
+#: ../../source/tor.rst:164
+msgid ""
+"Next, add your user to the group that runs the ``tor`` process (in the case "
+"of Debian and Ubuntu, ``debian-tor``) and configure OnionShare to connect to "
+"your system ``tor``'s control socket file."
+msgstr ""
+"سپس، کاربر خود را به گروهی که فرآیند ``tor`` را اجرا می‌کند (در مورد Debian و "
+"Ubuntu از ``debian-tor``)اضافه کنید و OnionShare را پیکربندی کنید تا به فایل "
+"سوکت کنترل ``tor`` سیستم شما متصل شود."
+
+#: ../../source/tor.rst:166
+msgid ""
+"Add your user to the ``debian-tor`` group by running this command (replace "
+"``username`` with your actual username)::"
+msgstr ""
+"با اجرای این دستور کاربر خود را به گروه ``debian-tor`` اضافه کنید (نام "
+"کاربری واقعی خود را جایگزین ``نام کاربری`` کنید)::"
+
+#: ../../source/tor.rst:170
+msgid ""
+"Reboot your computer. After it boots up again, open OnionShare, click the "
+"\"⚙\" icon in it, and switch to the Tor Settings tab. Under \"How should "
+"OnionShare connect to Tor?\" choose \"Connect using socket file\". Set the "
+"socket file to be ``/var/run/tor/control``. Under \"Tor authentication "
+"settings\" choose \"No authentication, or cookie authentication\". Click the "
+"\"Test Connection to Tor\" button."
+msgstr ""
+"کامپیوتر خود را مجددا راه اندازی کنید. بعد از اینکه دوباره بوت شد، "
+"OnionShare را باز کنید، روی نماد \"⚙\" در آن کلیک کنید و به تب تنظیمات Tor "
+"بروید. در بخش «چگونه باید OnionShare به Tor متصل شود؟» \"اتصال با استفاده از "
+"سوکت فایل\" را انتخاب کنید. فایل سوکت را به صورت ``/var/run/tor/control`` "
+"تنظیم کنید. در بخش «تنظیمات احراز هویت Tor»، «بدون احراز هویت، یا احراز هویت "
+"کوکی» را انتخاب کنید. روی دکمه \"تست اتصال به Tor\" کلیک کنید."

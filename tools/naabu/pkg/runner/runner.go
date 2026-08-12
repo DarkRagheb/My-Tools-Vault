@@ -1,0 +1,1879 @@
+package runner
+
+import (
+	"bytes"
+	"context"
+	"encoding/csv"
+	"encoding/json"
+	"fmt"
+	"math/big"
+	"net"
+	"net/http"
+	"net/url"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"sync"
+	"sync/atomic"
+	"time"
+
+	"github.com/Mzack9999/gcache"
+	"github.com/miekg/dns"
+	"github.com/pkg/errors"
+	"github.com/projectdiscovery/blackrock"
+	"github.com/projectdiscovery/clistats"
+	"github.com/projectdiscovery/dnsx/libs/dnsx"
+	"github.com/projectdiscovery/gologger"
+	"github.com/projectdiscovery/mapcidr"
+	"github.com/projectdiscovery/naabu/v2/pkg/fingerprint"
+	"github.com/projectdiscovery/naabu/v2/pkg/macvendor"
+	"github.com/projectdiscovery/naabu/v2/pkg/port"
+	"github.com/projectdiscovery/naabu/v2/pkg/privileges"
+	"github.com/projectdiscovery/naabu/v2/pkg/protocol"
+	"github.com/projectdiscovery/naabu/v2/pkg/result"
+	"github.com/projectdiscovery/naabu/v2/pkg/result/confidence"
+	"github.com/projectdiscovery/naabu/v2/pkg/scan"
+	"github.com/projectdiscovery/naabu/v2/pkg/utils/limits"
+	"github.com/projectdiscovery/networkpolicy"
+	"github.com/projectdiscovery/ratelimit"
+	"github.com/projectdiscovery/retryablehttp-go"
+	"github.com/projectdiscovery/uncover/sources/agent/shodanidb"
+	fileutil "github.com/projectdiscovery/utils/file"
+	iputil "github.com/projectdiscovery/utils/ip"
+	sliceutil "github.com/projectdiscovery/utils/slice"
+	"github.com/remeh/sizedwaitgroup"
+	"golang.org/x/net/proxy"
+)
+
+// defaultUniqueCacheSize bounds the output de-duplication LRU. ~64K entries
+// keeps memory flat (a few MB) while comfortably covering retry/retransmit
+// duplicate windows on large scans.
+const defaultUniqueCacheSize = 65536
+
+// Runner is an instance of the port enumeration
+// client used to orchestrate the whole process.
+type Runner struct {
+	options        *Options
+	targetsFile    string
+	scanner        *scan.Scanner
+	limiter        *ratelimit.Limiter
+	wgscan         sizedwaitgroup.SizedWaitGroup
+	dnsclient      *dnsx.DNSX
+	dnsclientProxy *dnsx.DNSX
+	stats          *clistats.Statistics
+	streamChannel  chan Target
+	excludedIpsNP  *networkpolicy.NetworkPolicy
+
+	unique gcache.Cache[string, struct{}]
+
+	// hasHostnames is set when at least one target resolves from a hostname
+	// (as opposed to a literal IP/CIDR/ASN). When false the output path can
+	// skip the disk-backed IP->hostname lookups entirely and emit IPs directly.
+	hasHostnames atomic.Bool
+
+	// csvHeaderOnce guards the live CSV header so it is written exactly once per
+	// run rather than once per onReceive call (which is per result).
+	csvHeaderOnce sync.Once
+
+	// verifyReplay is set only while handleOutput replays the post-verification
+	// result set through onReceive. In --verify mode live results are unverified,
+	// so onReceive suppresses them during the scan and emits only this replay.
+	verifyReplay atomic.Bool
+
+	// scanStartTime records when enumeration began, used for nmap-compatible
+	// XML/greppable output timestamps and elapsed time.
+	scanStartTime time.Time
+
+	fpTargetCh chan fingerprint.Target
+	// fpQueue decouples the scan hot path from the fingerprint workers so fast
+	// discovery never blocks the scan nor silently drops -sV targets.
+	fpQueue    *fpQueue
+	fpDone     chan struct{}
+	fpServices map[string]*port.Service
+	fpMu       sync.Mutex
+	fpCancel   context.CancelFunc
+	// probeDB is the parsed nmap-service-probes database, shared
+	// between service version detection (-sV) and the UDP probe
+	// injection path (-uP). It is nil until one of those features
+	// triggers a successful load.
+	probeDB *fingerprint.ProbeDB
+}
+
+type Target struct {
+	Ip   string
+	Cidr string
+	Fqdn string
+	Port string
+}
+
+// NewRunner creates a new runner struct instance by parsing
+// the configuration options, configuring sources, reading lists, etc
+func NewRunner(options *Options) (*Runner, error) {
+	options.configureOutput()
+
+	// automatically disable host discovery when less than two ports for scan are provided
+	ports, err := ParsePorts(options)
+	if err != nil {
+		return nil, fmt.Errorf("could not parse ports: %s", err)
+	}
+
+	options.configureHostDiscovery(ports)
+
+	// default to ipv4 and ipv6 if no ipversion was specified
+	if len(options.IPVersion) == 0 {
+		options.IPVersion = []string{scan.IPv4, scan.IPv6}
+	}
+
+	if options.Retries == 0 {
+		options.Retries = DefaultRetriesSynScan
+	}
+	if options.ResumeCfg == nil {
+		options.ResumeCfg = NewResumeCfg()
+	}
+	if options.Threads == 0 {
+		options.Threads = DefaultThreadsNum
+	}
+	if options.TxWorkers == 0 {
+		options.TxWorkers = 1
+	}
+	if options.DnsOrder == "" {
+		options.DnsOrder = "l"
+	}
+	runner := &Runner{
+		options: options,
+	}
+
+	dnsOptions := dnsx.DefaultOptions
+	dnsOptions.MaxRetries = runner.options.Retries
+	dnsOptions.Hostsfile = true
+	if sliceutil.Contains(options.IPVersion, scan.IPv6) {
+		dnsOptions.QuestionTypes = append(dnsOptions.QuestionTypes, dns.TypeAAAA)
+	}
+	if len(runner.options.baseResolvers) > 0 {
+		dnsOptions.BaseResolvers = runner.options.baseResolvers
+	}
+	dnsclient, err := dnsx.New(dnsOptions)
+	if err != nil {
+		return nil, err
+	}
+	runner.dnsclient = dnsclient
+
+	if options.Proxy != "" && strings.Contains(options.DnsOrder, "p") {
+		proxyDnsOptions := dnsx.DefaultOptions
+		proxyDnsOptions.MaxRetries = runner.options.Retries
+		proxyDnsOptions.Hostsfile = true
+		if sliceutil.Contains(options.IPVersion, scan.IPv6) {
+			proxyDnsOptions.QuestionTypes = append(proxyDnsOptions.QuestionTypes, dns.TypeAAAA)
+		}
+		if len(runner.options.baseResolvers) > 0 {
+			proxyDnsOptions.BaseResolvers = runner.options.baseResolvers
+		}
+
+		proxyURL := options.Proxy
+		if !strings.Contains(proxyURL, "://") {
+			proxyURL = "socks5://" + proxyURL
+		}
+		if options.ProxyAuth != "" {
+			if u, err := url.Parse(proxyURL); err == nil {
+				creds := strings.SplitN(options.ProxyAuth, ":", 2)
+				if len(creds) == 2 {
+					u.User = url.UserPassword(creds[0], creds[1])
+					proxyURL = u.String()
+				}
+			}
+		}
+		proxyDnsOptions.Proxy = proxyURL
+		dnsclientProxy, err := dnsx.New(proxyDnsOptions)
+		if err != nil {
+			return nil, err
+		}
+		runner.dnsclientProxy = dnsclientProxy
+	}
+
+	excludedIps, err := runner.parseExcludedIps(options)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(excludedIps) > 0 {
+		excludedIpsNP, err := networkpolicy.New(networkpolicy.Options{
+			DenyList: excludedIps,
+		})
+		if err != nil {
+			return nil, err
+		}
+		runner.excludedIpsNP = excludedIpsNP
+	}
+	runner.streamChannel = make(chan Target)
+
+	// Bounded LRU for output de-duplication of ip:port (and host:port) lines.
+	// Duplicates come from scan retries and target retransmissions; a generous
+	// LRU window absorbs them while keeping memory flat on huge scans. LRU is
+	// preferred over a bloom filter here because an eviction only risks a benign
+	// repeated line, whereas a bloom false-positive would drop a real result.
+	uniqueCache := gcache.New[string, struct{}](defaultUniqueCacheSize).LRU().Build()
+	runner.unique = uniqueCache
+
+	scanOpts := &scan.Options{
+		Timeout:              options.GetTimeout(),
+		Retries:              options.Retries,
+		Rate:                 options.Rate,
+		PortThreshold:        options.PortThreshold,
+		ExcludeCdn:           options.ExcludeCDN,
+		OutputCdn:            options.OutputCDN,
+		ExcludedIps:          excludedIps,
+		Proxy:                options.Proxy,
+		ProxyAuth:            options.ProxyAuth,
+		Stream:               options.Stream,
+		OnReceive:            options.OnReceive,
+		ScanType:             options.ScanType,
+		NetworkPolicyOptions: options.NetworkPolicyOptions,
+	}
+
+	if scanOpts.OnReceive == nil {
+		scanOpts.OnReceive = runner.onReceive
+	}
+
+	if options.ServiceVersion {
+		scan.EnableTLSDetection = true
+	}
+
+	scanner, err := scan.NewScanner(scanOpts)
+	if err != nil {
+		return nil, err
+	}
+	runner.scanner = scanner
+	runner.options.ScanType = scanner.ScanType
+
+	runner.scanner.Ports = ports
+
+	if options.EnableProgressBar {
+		defaultOptions := &clistats.DefaultOptions
+		defaultOptions.ListenPort = options.MetricsPort
+		stats, err := clistats.NewWithOptions(context.Background(), defaultOptions)
+		if err != nil {
+			gologger.Warning().Msgf("Couldn't create progress engine: %s\n", err)
+		} else {
+			runner.stats = stats
+		}
+	}
+
+	return runner, nil
+}
+
+// finalJSONCSVToStdout reports whether handleOutput should print JSON/CSV
+// results to stdout. In the common case onReceive already streams them live
+// during the scan (and the Verify path replays through onReceive), so printing
+// again here would duplicate every line. It only falls to handleOutput when the
+// live path is intentionally suppressed: -sV emits enriched output after the
+// scan, and nmap CLI defers JSON/CSV until after nmap integration.
+func (r *Runner) finalJSONCSVToStdout() bool {
+	return r.options.ServiceVersion || (r.options.NmapCLI != "" && (r.options.JSON || r.options.CSV))
+}
+
+// hostsForIP returns the hostnames to print for an IP. For scans whose inputs
+// are pure IPs/CIDRs (no hostnames), it returns the IP directly and avoids the
+// disk-backed Hosts lookup entirely.
+func (r *Runner) hostsForIP(ip string) ([]string, error) {
+	if !r.hasHostnames.Load() {
+		return []string{ip}, nil
+	}
+	return r.scanner.IPRanger.GetHostsByIP(ip)
+}
+
+// recoverHostnames rewrites bare IPs in dt with hostnames recorded against the
+// ip:port keys. It is a no-op for pure IP/CIDR scans (no hostname store).
+func (r *Runner) recoverHostnames(ip string, ports []*port.Port, dt []string) {
+	if !r.hasHostnames.Load() {
+		return
+	}
+	for _, p := range ports {
+		ipPort := net.JoinHostPort(ip, fmt.Sprint(p.Port))
+		if dtOthers, ok := r.scanner.IPRanger.Hosts.Get(ipPort); ok {
+			if otherName, _, err := net.SplitHostPort(string(dtOthers)); err == nil {
+				for idx, ipCandidate := range dt {
+					if iputil.IsIP(ipCandidate) {
+						dt[idx] = otherName
+					}
+				}
+			}
+		}
+	}
+}
+
+func (r *Runner) onReceive(hostResult *result.HostResult) {
+	// In --verify mode the results streamed during the scan are unverified. Drop
+	// them here (this also covers the raw SYN path, whose TCPResultWorker calls
+	// OnReceive unconditionally) so only the verified replay reaches stdout and the
+	// unique cache, keeping stdout consistent with the file output.
+	if r.options.Verify && !r.verifyReplay.Load() {
+		return
+	}
+	if !ipMatchesIpVersions(hostResult.IP, r.options.IPVersion...) {
+		return
+	}
+
+	dt, err := r.hostsForIP(hostResult.IP)
+	if err != nil {
+		return
+	}
+
+	// A receive event may carry multiple ports (e.g. --verify replays the
+	// full HostResult). Keep only the ports we have not emitted yet instead
+	// of dropping the whole host the moment its first port was already seen.
+	newPorts := make([]*port.Port, 0, len(hostResult.Ports))
+	for _, p := range hostResult.Ports {
+		ipPort := net.JoinHostPort(hostResult.IP, fmt.Sprint(p.Port))
+		if r.unique.Has(ipPort) {
+			continue
+		}
+		newPorts = append(newPorts, p)
+	}
+	if len(newPorts) == 0 {
+		return
+	}
+	// shallow-copy so we don't mutate the caller's HostResult slice
+	hr := *hostResult
+	hr.Ports = newPorts
+	hostResult = &hr
+
+	// recover hostnames from ip:port combination
+	r.recoverHostnames(hostResult.IP, hostResult.Ports, dt)
+	for _, p := range hostResult.Ports {
+		ipPort := net.JoinHostPort(hostResult.IP, fmt.Sprint(p.Port))
+		_ = r.unique.Set(ipPort, struct{}{})
+	}
+
+	// Feed on-the-fly service detection. The queue never drops targets, so -sV
+	// stays complete even when discovery outpaces the fingerprint workers. When
+	// the backlog hits its memory ceiling, push blocks here and backpressure
+	// reaches TCPResultWorker (not the SYN TX path directly).
+	r.fpMu.Lock()
+	fpq := r.fpQueue
+	r.fpMu.Unlock()
+	if fpq != nil {
+		hostname := hostResult.IP
+		for _, h := range dt {
+			if h != "ip" && h != hostResult.IP {
+				hostname = h
+				break
+			}
+		}
+		for _, p := range hostResult.Ports {
+			fpq.push(fingerprint.Target{
+				Host:        hostname,
+				IP:          hostResult.IP,
+				Port:        p.Port,
+				TLSDetected: p.TLS, //nolint:staticcheck // deprecated but still set by scan layer
+				TLSChecked:  true,
+			})
+		}
+	}
+
+	// Skip live output for -sV (enriched output in handleOutput)
+	if r.options.ServiceVersion {
+		return
+	}
+
+	// Skip immediate JSON/CSV output if nmap CLI is specified to postpone until after nmap integration
+	if r.options.NmapCLI != "" && (r.options.JSON || r.options.CSV) {
+		return
+	}
+
+	buffer := bytes.Buffer{}
+	writer := csv.NewWriter(&buffer)
+	for _, host := range dt {
+		buffer.Reset()
+		if host == "ip" {
+			host = hostResult.IP
+		}
+
+		isCDNIP, cdnName, _ := r.scanner.CdnCheck(hostResult.IP)
+		// console output
+		if r.options.JSON || r.options.CSV {
+			data := &Result{IP: hostResult.IP, TimeStamp: time.Now().UTC(), MacAddress: hostResult.MacAddress}
+			if r.options.OutputCDN {
+				data.IsCDNIP = isCDNIP
+				data.CDNName = cdnName
+			}
+			if host != hostResult.IP {
+				data.Host = host
+			}
+			for _, p := range hostResult.Ports {
+				data.Port = p.Port
+				data.Protocol = p.Protocol.String()
+				//nolint
+				data.TLS = p.TLS
+				if r.options.JSON {
+					b, err := data.JSON(r.options.ExcludeOutputFields)
+					if err != nil {
+						continue
+					}
+					_, _ = fmt.Fprintf(&buffer, "%s\n", b)
+				} else if r.options.CSV {
+					r.csvHeaderOnce.Do(func() {
+						writeCSVHeaders(data, writer, r.options.ExcludeOutputFields)
+					})
+					writeCSVRow(data, writer, r.options.ExcludeOutputFields)
+				}
+			}
+		}
+		if !r.options.DisableStdout {
+			if r.options.JSON {
+				gologger.Silent().Msgf("%s", buffer.String())
+			} else if r.options.CSV {
+				writer.Flush()
+				gologger.Silent().Msgf("%s", buffer.String())
+			} else {
+				for _, p := range hostResult.Ports {
+					if host != hostResult.IP {
+						hostPort := net.JoinHostPort(host, fmt.Sprint(p.Port))
+						if r.unique.Has(hostPort) {
+							continue
+						}
+						_ = r.unique.Set(hostPort, struct{}{})
+					}
+					if r.options.OutputCDN && isCDNIP {
+						gologger.Silent().Msgf("%s:%d [%s]\n", host, p.Port, cdnName)
+					} else {
+						gologger.Silent().Msgf("%s:%d\n", host, p.Port)
+					}
+				}
+			}
+		}
+	}
+}
+
+// RunEnumeration runs the ports enumeration flow on the targets specified
+func (r *Runner) RunEnumeration(pctx context.Context) error {
+	ctx, cancel := context.WithCancel(pctx)
+	defer cancel()
+
+	r.scanStartTime = time.Now()
+	// Reset per-enumeration state so a reused Runner (SDK) writes a fresh CSV
+	// header and does not suppress IP:port pairs seen in a previous scan.
+	r.csvHeaderOnce = sync.Once{}
+	r.unique = gcache.New[string, struct{}](defaultUniqueCacheSize).LRU().Build()
+
+	if privileges.IsPrivileged && r.options.ScanType == SynScan {
+		// Set values if those were specified via cli, errors are fatal
+		if r.options.SourceIP != "" {
+			err := r.SetSourceIP(r.options.SourceIP)
+			if err != nil {
+				return err
+			}
+		}
+		if r.options.Interface != "" {
+			err := r.SetInterface(r.options.Interface)
+			if err != nil {
+				return err
+			}
+		}
+		if r.options.SourcePort != "" {
+			err := r.SetSourcePort(r.options.SourcePort)
+			if err != nil {
+				return err
+			}
+		}
+		r.BackgroundWorkers(ctx)
+	}
+
+	r.initServiceDetection(ctx)
+	// Always tear down fingerprint workers, including early returns (Load
+	// failure, OnlyHostDiscovery, handleNmap error). waitServiceDetection is
+	// idempotent once fpQueue is nil, so the explicit call sites below remain
+	// safe and still merge results before output.
+	defer func() {
+		if r.scanner != nil {
+			r.waitServiceDetection(r.scanner.ScanResults)
+		}
+	}()
+	r.initUDPProbes()
+
+	if r.options.Stream {
+		go r.Load() //nolint
+	} else {
+		err := r.Load()
+		if err != nil {
+			return err
+		}
+	}
+
+	// automatically adjust rate limit if proxy is used
+	if r.options.Proxy != "" {
+		r.options.Rate = limits.RateLimitWithProxy(r.options.Rate)
+	}
+
+	shouldDiscoverHosts := r.options.shouldDiscoverHosts()
+	shouldUseRawPackets := r.options.shouldUseRawPackets()
+
+	// Scan workers
+	scanConcurrency := r.options.Rate
+	if !shouldUseRawPackets {
+		// Connect scan opens one socket per in-flight probe. Raise the open
+		// file limit to the hard limit and cap concurrency to what it allows,
+		// so the default rate does not trip "too many open files".
+		if soft := raiseOpenFileLimit(); soft > 0 {
+			if capped := connectConcurrency(r.options.Rate, soft); capped < scanConcurrency {
+				gologger.Info().Msgf("Capping connect concurrency to %d (open file limit %d)\n", capped, soft)
+				scanConcurrency = capped
+			}
+		}
+	}
+	r.wgscan = sizedwaitgroup.New(scanConcurrency)
+	r.limiter = ratelimit.New(context.Background(), uint(r.options.Rate), time.Second)
+
+	if shouldDiscoverHosts && shouldUseRawPackets {
+		// perform host discovery
+		showHostDiscoveryInfo()
+		r.scanner.ListenHandler.Phase.Set(scan.HostDiscovery)
+		// shrinks the ips to the minimum amount of cidr
+		_, targetsV4, targetsv6, _, err := r.GetTargetIps(r.getPreprocessedIps)
+		if err != nil {
+			return err
+		}
+
+		discoverCidr := func(cidr *net.IPNet) {
+			ipStream, _ := mapcidr.IPAddressesAsStream(cidr.String())
+			for ip := range ipStream {
+				if r.excludedIpsNP == nil || r.excludedIpsNP.ValidateAddress(ip) {
+					r.handleHostDiscovery(ip)
+				}
+			}
+		}
+
+		for _, target4 := range targetsV4 {
+			discoverCidr(target4)
+		}
+		for _, target6 := range targetsv6 {
+			discoverCidr(target6)
+		}
+
+		if r.options.WarmUpTime > 0 {
+			time.Sleep(time.Duration(r.options.WarmUpTime) * time.Second)
+		}
+
+		if r.options.ShowDeadHosts {
+			// re-stream the same targets instead of holding every probed ip in
+			// memory; dead hosts are the streamed targets that never responded.
+			r.calculateDeadHosts(targetsV4, targetsv6)
+		}
+
+		// check if we should stop here or continue with full scan
+		if r.options.OnlyHostDiscovery {
+			r.handleOutput(r.scanner.HostDiscoveryResults)
+			return nil
+		}
+	}
+	payload := r.options.ConnectPayload
+	switch {
+	case r.options.Stream && !r.options.Passive: // stream active
+		showNetworkCapabilities(r.options)
+		r.scanner.ListenHandler.Phase.Set(scan.Scan)
+
+		handleStreamIp := func(target string, port *port.Port) bool {
+			if r.scanner.ScanResults.HasSkipped(target) {
+				return false
+			}
+			if r.options.PortThreshold > 0 && r.scanner.ScanResults.GetPortCount(target) >= r.options.PortThreshold {
+				hosts, _ := r.scanner.IPRanger.GetHostsByIP(target)
+				gologger.Info().Msgf("Skipping %s %v, Threshold reached \n", target, hosts)
+				r.scanner.ScanResults.AddSkipped(target)
+				return false
+			}
+			if shouldUseRawPackets {
+				r.RawSocketEnumeration(ctx, target, port)
+			} else {
+				r.wgscan.Add()
+				go r.handleHostPort(ctx, target, payload, port)
+			}
+			return true
+		}
+
+		for target := range r.streamChannel {
+			if err := r.scanner.IPRanger.Add(target.Cidr); err != nil {
+				gologger.Warning().Msgf("Couldn't track %s in scan results: %s\n", target, err)
+			}
+			if ipStream, err := mapcidr.IPAddressesAsStream(target.Cidr); err == nil {
+				for ip := range ipStream {
+					for _, port := range r.scanner.Ports {
+						if !handleStreamIp(ip, port) {
+							break
+						}
+					}
+				}
+			} else if target.Ip != "" && target.Port != "" {
+				pp, _ := strconv.Atoi(target.Port)
+				handleStreamIp(target.Ip, &port.Port{Port: pp, Protocol: protocol.TCP})
+			}
+		}
+		r.wgscan.Wait()
+
+		time.Sleep(time.Duration(r.options.WarmUpTime) * time.Second)
+
+		r.waitServiceDetection(r.scanner.ScanResults)
+		r.handleOutput(r.scanner.ScanResults)
+		return nil
+	case r.options.Stream && r.options.Passive: // stream passive
+		showNetworkCapabilities(r.options)
+		// create retryablehttp instance
+		httpClient := retryablehttp.NewClient(retryablehttp.DefaultOptionsSingle)
+		r.scanner.ListenHandler.Phase.Set(scan.Scan)
+		for target := range r.streamChannel {
+			if err := r.scanner.IPRanger.Add(target.Cidr); err != nil {
+				gologger.Warning().Msgf("Couldn't track %s in scan results: %s\n", target, err)
+			}
+			ipStream, _ := mapcidr.IPAddressesAsStream(target.Cidr)
+			for ip := range ipStream {
+				r.wgscan.Add()
+				go func(ip string) {
+					defer r.wgscan.Done()
+
+					// obtain ports from shodan idb
+					shodanURL := fmt.Sprintf(shodanidb.URL, url.QueryEscape(ip))
+					request, err := retryablehttp.NewRequest(http.MethodGet, shodanURL, nil)
+					if err != nil {
+						gologger.Warning().Msgf("Couldn't create http request for %s: %s\n", ip, err)
+						return
+					}
+					r.limiter.Take()
+					response, err := httpClient.Do(request)
+					if err != nil {
+						gologger.Warning().Msgf("Couldn't retrieve http response for %s: %s\n", ip, err)
+						return
+					}
+					defer func() { _ = response.Body.Close() }()
+					if response.StatusCode != http.StatusOK {
+						gologger.Warning().Msgf("Couldn't retrieve data for %s, server replied with status code: %d\n", ip, response.StatusCode)
+						return
+					}
+
+					// unmarshal the response
+					data := &shodanidb.ShodanResponse{}
+					if err := json.NewDecoder(response.Body).Decode(data); err != nil {
+						gologger.Warning().Msgf("Couldn't unmarshal json data for %s: %s\n", ip, err)
+						return
+					}
+
+					var passivePorts []*port.Port
+					for _, p := range data.Ports {
+						pp := &port.Port{Port: p, Protocol: protocol.TCP}
+						passivePorts = append(passivePorts, pp)
+					}
+
+					filteredPorts, err := excludePorts(r.options, passivePorts)
+					if err != nil {
+						gologger.Warning().Msgf("Couldn't exclude ports for %s: %s\n", ip, err)
+						return
+					}
+					for _, p := range filteredPorts {
+						r.scanner.ScanResults.AddPort(ip, p)
+						// ignore OnReceive when verification is enabled
+						if r.options.Verify {
+							continue
+						}
+						if r.scanner.OnReceive != nil {
+							r.scanner.OnReceive(&result.HostResult{IP: ip, Ports: []*port.Port{p}})
+						}
+
+					}
+				}(ip)
+			}
+		}
+		r.wgscan.Wait()
+
+		// Validate the hosts if the user has asked for second step validation
+		if r.options.Verify {
+			r.ConnectVerification()
+		}
+
+		// handle nmap first to integrate service information
+		if err := r.handleNmap(); err != nil {
+			return err
+		}
+
+		r.waitServiceDetection(r.scanner.ScanResults)
+
+		// then handle output with enhanced service information
+		r.handleOutput(r.scanner.ScanResults)
+		return nil
+	default:
+		showNetworkCapabilities(r.options)
+
+		ipsCallback := r.getPreprocessedIps
+		if shouldDiscoverHosts && shouldUseRawPackets {
+			if r.scanner.HostDiscoveryResults.HasIPS() {
+				ipsCallback = r.getHostDiscoveryIps
+			} else {
+				gologger.Warning().Msgf("Host discovery found no live hosts, scanning all targets")
+			}
+		}
+
+		// shrinks the ips to the minimum amount of cidr
+		targets, targetsV4, targetsv6, targetsWithPort, err := r.GetTargetIps(ipsCallback)
+		if err != nil {
+			return err
+		}
+		var targetsCount, portsCount, targetsWithPortCount uint64
+		for _, target := range append(targetsV4, targetsv6...) {
+			if target == nil {
+				continue
+			}
+			targetsCount += mapcidr.AddressCountIpnet(target)
+		}
+		portsCount = uint64(len(r.scanner.Ports))
+		targetsWithPortCount = uint64(len(targetsWithPort))
+
+		r.scanner.ListenHandler.Phase.Set(scan.Scan)
+
+		if r.options.SmartScan {
+			// Predictive scan: two-phase priority-ordered scan of the
+			// user's port list, reordered by the correlation model.
+			r.runPredictiveScan(ctx, targets, targetsWithPort, shouldUseRawPackets)
+		} else {
+			// Fast SYN sender: bypasses gopacket serialization, per-packet route
+			// lookups and the single-writer channel. Falls back to the standard
+			// path for connect scans, IPv6 targets and ethernet framing.
+			var synSender *SYNSender
+			var tgtIdx *targetIndex
+			var synPacer *pacer
+			if shouldUseRawPackets {
+				tgtIdx = buildTargetIndex(targets)
+				if s, err := newSYNSender(r.scanner.ListenHandler); err != nil {
+					gologger.Debug().Msgf("fast SYN sender unavailable (%s), using standard path\n", err)
+				} else {
+					synSender = s
+					synPacer = newPacer(r.options.Rate)
+					gologger.Info().Msgf("fast SYN sender active (direct raw socket)")
+				}
+			}
+
+			Range := targetsCount * portsCount
+
+			// Multi-core transmit senders are opened once and reused across all
+			// retries; opening/closing every worker socket per retry was pure churn.
+			useFastTx := synSender != nil && r.options.TxWorkers > 1 && !r.options.Resume
+			var txSenders []*SYNSender
+			if useFastTx {
+				txSenders = r.buildTxSenders(synSender, int64(Range))
+				defer closeTxSenders(txSenders)
+			}
+
+			if r.options.EnableProgressBar {
+				r.stats.AddStatic("ports", portsCount)
+				r.stats.AddStatic("hosts", targetsCount)
+				r.stats.AddStatic("retries", r.options.Retries)
+				r.stats.AddStatic("startedAt", time.Now())
+				r.stats.AddCounter("packets", uint64(0))
+				r.stats.AddCounter("errors", uint64(0))
+				r.stats.AddCounter("total", Range*uint64(r.options.Retries)+targetsWithPortCount)
+				r.stats.AddStatic("hosts_with_port", targetsWithPortCount)
+				if err := r.stats.Start(); err != nil {
+					gologger.Warning().Msgf("Couldn't start statistics: %s\n", err)
+				}
+			}
+
+			// Retries are performed regardless of the previous scan results due to network unreliability
+			scanCancelled := false
+			for currentRetry := 0; currentRetry < r.options.Retries; currentRetry++ {
+				if scanCancelled {
+					break
+				}
+				if currentRetry < r.options.ResumeCfg.Retry {
+					gologger.Debug().Msgf("Skipping Retry: %d\n", currentRetry)
+					continue
+				}
+
+				// Use current time as seed, unless an explicit/shard seed applies.
+				// Sharded nodes must share a seed so their slices are disjoint.
+				currentSeed := r.options.shardSeed(time.Now().UnixNano())
+				r.options.ResumeCfg.RLock()
+				if r.options.ResumeCfg.Seed > 0 {
+					currentSeed = r.options.ResumeCfg.Seed
+				}
+				r.options.ResumeCfg.RUnlock()
+
+				// keep track of current retry and seed for resume
+				r.options.ResumeCfg.Lock()
+				r.options.ResumeCfg.Retry = currentRetry
+				r.options.ResumeCfg.Seed = currentSeed
+				r.options.ResumeCfg.Unlock()
+
+				// Scan in priority tiers, permuting within each tier rather than
+				// across the whole range, so the most likely open ports stay early
+				// regardless of how wide the range is. A single-tier plan reproduces
+				// the previous uniform ordering exactly. See porttiers.go.
+				tiers := buildPortTiers(r.scanner.Ports, !r.options.NoPortPriority)
+				if tiers.totalTiers() > 1 {
+					gologger.Debug().Msgf("Scanning in %d priority tiers\n", tiers.totalTiers())
+				}
+
+				// indexBase keeps the index space contiguous across tiers, so shard
+				// slicing and resume bookkeeping stay monotonic and disjoint.
+				var indexBase int64
+				for _, tierPortIdx := range tiers {
+					if scanCancelled {
+						break
+					}
+					tierPortsCount := int64(len(tierPortIdx))
+					if tierPortsCount == 0 {
+						continue
+					}
+					tierRange := int64(targetsCount) * tierPortsCount
+					b := blackrock.New(tierRange, currentSeed)
+
+					if useFastTx {
+						// Multi-core transmit: fan the fast SYN sends across N
+						// workers, each with its own socket, batch and rate slice.
+						// Resume relies on serial per-index bookkeeping, so it falls
+						// back to the single-worker loop below.
+						r.runFastTx(ctx, b, tierRange, indexBase, tierPortIdx, targets, tgtIdx, txSenders, payload, shouldUseRawPackets)
+						// runFastTx returns early on cancellation; propagate it so we do
+						// not re-open the worker sockets for every remaining retry.
+						select {
+						case <-ctx.Done():
+							scanCancelled = true
+						default:
+						}
+						indexBase += tierRange
+						continue
+					}
+
+					for local := int64(0); local < tierRange; local++ {
+						index := indexBase + local
+						select {
+						case <-ctx.Done():
+							scanCancelled = true
+						default:
+						}
+						if scanCancelled {
+							break
+						}
+						// Distributed sharding: each node only handles its slice of
+						// the index space. The shared seed makes the slices disjoint.
+						if !r.options.inShard(index) {
+							continue
+						}
+						xxx := b.Shuffle(local)
+						ipIndex := xxx / tierPortsCount
+						portIndex := tierPortIdx[int(xxx%tierPortsCount)]
+
+						// fast IPv4 generation (uint32 math) when the fast sender is
+						// active; otherwise fall back to the big.Int-based PickIP.
+						var (
+							dstIP4 [4]byte
+							isV4   bool
+							ip     string
+							srcSum uint32
+						)
+						if synSender != nil {
+							dstIP4, ip, srcSum, isV4 = tgtIdx.pickIPv4(ipIndex)
+						}
+						if ip == "" {
+							ip = r.PickIP(targets, ipIndex)
+						}
+
+						if r.excludedIpsNP != nil && !r.excludedIpsNP.ValidateAddress(ip) {
+							continue
+						}
+
+						port := r.PickPort(portIndex)
+
+						r.options.ResumeCfg.RLock()
+						resumeCfgIndex := r.options.ResumeCfg.Index
+						r.options.ResumeCfg.RUnlock()
+						if index < resumeCfgIndex {
+							gologger.Debug().Msgf("Skipping \"%s:%d\": Resume - Port scan already completed\n", ip, port.Port)
+							continue
+						}
+
+						// resume cfg logic
+						r.options.ResumeCfg.Lock()
+						r.options.ResumeCfg.Index = index
+						r.options.ResumeCfg.Unlock()
+
+						if r.scanner.ScanResults.HasSkipped(ip) {
+							continue
+						}
+						if r.options.PortThreshold > 0 && r.scanner.ScanResults.GetPortCount(ip) >= r.options.PortThreshold {
+							hosts, _ := r.scanner.IPRanger.GetHostsByIP(ip)
+							gologger.Info().Msgf("Skipping %s %v, Threshold reached \n", ip, hosts)
+							r.scanner.ScanResults.AddSkipped(ip)
+							continue
+						}
+
+						if shouldUseRawPackets {
+							if synSender != nil && isV4 && port.Protocol == protocol.TCP {
+								if r.scanner.ScanResults.IPHasPort(ip, port) {
+									continue
+								}
+								if !r.canIScanIfCDN(ip, port) {
+									continue
+								}
+								synPacer.wait()
+								if err := synSender.send(dstIP4, srcSum, uint16(port.Port)); err != nil {
+									if isCongestion(err) {
+										synPacer.onCongestion()
+									}
+									gologger.Debug().Msgf("fast send error %s:%d: %s\n", ip, port.Port, err)
+								}
+							} else {
+								r.RawSocketEnumeration(ctx, ip, port)
+							}
+						} else {
+							r.wgscan.Add()
+							go r.handleHostPort(ctx, ip, payload, port)
+						}
+						if r.options.EnableProgressBar {
+							r.stats.IncrementCounter("packets", 1)
+						}
+					}
+					indexBase += tierRange
+				}
+
+				// handle the ip:port combination
+				for twpIndex, targetWithPort := range targetsWithPort {
+					select {
+					case <-ctx.Done():
+						scanCancelled = true
+					default:
+					}
+					if scanCancelled {
+						break
+					}
+					// shard the explicit ip:port targets the same way as the
+					// generated (host, port) space.
+					if !r.options.inShard(int64(twpIndex)) {
+						continue
+					}
+					ip, p, err := net.SplitHostPort(targetWithPort)
+					if err != nil {
+						gologger.Debug().Msgf("Skipping %s: %v\n", targetWithPort, err)
+						continue
+					}
+
+					// naive port find
+					pp, err := strconv.Atoi(p)
+					if err != nil {
+						gologger.Debug().Msgf("Skipping %s, could not cast port %s: %v\n", targetWithPort, p, err)
+						continue
+					}
+					var portWithMetadata = port.Port{
+						Port:     pp,
+						Protocol: protocol.TCP,
+					}
+
+					// connect scan
+					if shouldUseRawPackets {
+						r.RawSocketEnumeration(ctx, ip, &portWithMetadata)
+					} else {
+						r.wgscan.Add()
+						go r.handleHostPort(ctx, ip, payload, &portWithMetadata)
+					}
+					if r.options.EnableProgressBar {
+						r.stats.IncrementCounter("packets", 1)
+					}
+				}
+
+				// flush any SYN packets still queued in the batch sender
+				if synSender != nil {
+					if err := synSender.flush(); err != nil {
+						if isCongestion(err) {
+							synPacer.onCongestion()
+						}
+						gologger.Debug().Msgf("final flush failed: %s\n", err)
+					}
+				}
+
+				r.wgscan.Wait()
+
+				r.options.ResumeCfg.Lock()
+				if r.options.ResumeCfg.Seed > 0 {
+					r.options.ResumeCfg.Seed = 0
+				}
+				if r.options.ResumeCfg.Index > 0 {
+					// zero also the current index as we are restarting the scan
+					r.options.ResumeCfg.Index = 0
+				}
+				r.options.ResumeCfg.Unlock()
+			}
+		}
+
+		warmUpTime := 2 * time.Second
+		if r.options.WarmUpTime > 0 {
+			warmUpTime = time.Duration(r.options.WarmUpTime) * time.Second
+		}
+
+		time.Sleep(warmUpTime)
+
+		r.scanner.ListenHandler.Phase.Set(scan.Done)
+
+		// Validate the hosts if the user has asked for second step validation
+		if r.options.Verify {
+			r.ConnectVerification()
+		}
+
+		// handle nmap first to integrate service information
+		if err := r.handleNmap(); err != nil {
+			return err
+		}
+
+		r.waitServiceDetection(r.scanner.ScanResults)
+
+		// then handle output with enhanced service information
+		r.handleOutput(r.scanner.ScanResults)
+		return nil
+	}
+}
+
+func (r *Runner) getHostDiscoveryIps() (ips []*net.IPNet, ipsWithPort []string) {
+	for ip := range r.scanner.HostDiscoveryResults.GetIPs() {
+		ips = append(ips, iputil.ToCidr(string(ip)))
+	}
+
+	r.scanner.IPRanger.Hosts.Scan(func(ip, _ []byte) error {
+		// ips with port are ignored during host discovery phase
+		if cidr := iputil.ToCidr(string(ip)); cidr == nil {
+			ipsWithPort = append(ipsWithPort, string(ip))
+		}
+		return nil
+	})
+
+	return
+}
+
+func (r *Runner) getPreprocessedIps() (cidrs []*net.IPNet, ipsWithPort []string) {
+	r.scanner.IPRanger.Hosts.Scan(func(ip, _ []byte) error {
+		if cidr := iputil.ToCidr(string(ip)); cidr != nil {
+			cidrs = append(cidrs, cidr)
+		} else {
+			ipsWithPort = append(ipsWithPort, string(ip))
+		}
+
+		return nil
+	})
+	return
+}
+
+func (r *Runner) GetTargetIps(ipsCallback func() ([]*net.IPNet, []string)) (targets, targetsV4, targetsV6 []*net.IPNet, targetsWithPort []string, err error) {
+	targets, targetsWithPort = ipsCallback()
+
+	// shrinks the ips to the minimum amount of cidr
+	targetsV4, targetsV6 = mapcidr.CoalesceCIDRs(targets)
+	if len(targetsV4) == 0 && len(targetsV6) == 0 && len(targetsWithPort) == 0 {
+		return nil, nil, nil, nil, errors.New("no valid ipv4 or ipv6 targets were found")
+	}
+
+	targets = make([]*net.IPNet, 0, len(targets))
+	if r.options.ShouldScanIPv4() {
+		targets = append(targets, targetsV4...)
+	} else {
+		targetsV4 = make([]*net.IPNet, 0)
+	}
+
+	if r.options.ShouldScanIPv6() {
+		targets = append(targets, targetsV6...)
+	} else {
+		targetsV6 = make([]*net.IPNet, 0)
+	}
+
+	return targets, targetsV4, targetsV6, targetsWithPort, nil
+}
+
+func (r *Runner) ShowScanResultOnExit() {
+	// handle nmap first to integrate service information
+	if err := r.handleNmap(); err != nil {
+		gologger.Fatal().Msgf("Could not run enumeration: %s\n", err)
+	}
+
+	r.waitServiceDetection(r.scanner.ScanResults)
+
+	// then handle output with enhanced service information
+	r.handleOutput(r.scanner.ScanResults)
+}
+
+// Close runner instance
+func (r *Runner) Close() error {
+	if err := os.RemoveAll(r.targetsFile); err != nil {
+		return err
+	}
+	if err := r.scanner.IPRanger.Hosts.Close(); err != nil {
+		return err
+	}
+	if r.options.EnableProgressBar {
+		if err := r.stats.Stop(); err != nil {
+			return err
+		}
+	}
+	if r.scanner != nil {
+		if err := r.scanner.Close(); err != nil {
+			return err
+		}
+	}
+	if r.limiter != nil {
+		r.limiter.Stop()
+	}
+	if r.options.OnClose != nil {
+		r.options.OnClose()
+	}
+
+	return nil
+}
+
+// PickIP randomly
+func (r *Runner) PickIP(targets []*net.IPNet, index int64) string {
+	for _, target := range targets {
+		subnetIpsCount := int64(mapcidr.AddressCountIpnet(target))
+		if index < subnetIpsCount {
+			return r.PickSubnetIP(target, index)
+		}
+		index -= subnetIpsCount
+	}
+
+	return ""
+}
+
+func (r *Runner) PickSubnetIP(network *net.IPNet, index int64) string {
+	ipInt, bits, err := mapcidr.IPToInteger(network.IP)
+	if err != nil {
+		gologger.Warning().Msgf("%s\n", err)
+		return ""
+	}
+	subnetIpInt := big.NewInt(0).Add(ipInt, big.NewInt(index))
+	ip := mapcidr.IntegerToIP(subnetIpInt, bits)
+	return ip.String()
+}
+
+func (r *Runner) PickPort(index int) *port.Port {
+	return r.scanner.Ports[index]
+}
+
+func (r *Runner) ConnectVerification() {
+	r.scanner.ListenHandler.Phase.Set(scan.Scan)
+	// Cap concurrent verification dials at the same open-file-aware limit used
+	// by the main connect scan, while still pacing with the configured rate.
+	soft := raiseOpenFileLimit()
+	swg := sizedwaitgroup.New(connectConcurrency(r.options.Rate, soft))
+	limiter := ratelimit.New(context.Background(), uint(r.options.Rate), time.Second)
+	defer limiter.Stop()
+
+	verifiedResult := result.NewResult()
+
+	for hostResult := range r.scanner.ScanResults.GetIPsPorts() {
+		limiter.Take()
+
+		swg.Add()
+		go func(hostResult *result.HostResult) {
+			defer swg.Done()
+
+			// skip low confidence
+			if hostResult.Confidence == confidence.Low {
+				return
+			}
+
+			results := r.scanner.ConnectVerify(hostResult.IP, hostResult.Ports)
+			verifiedResult.SetPorts(hostResult.IP, results)
+		}(hostResult)
+	}
+
+	swg.Wait()
+
+	r.scanner.ScanResults = verifiedResult
+}
+
+func (r *Runner) BackgroundWorkers(ctx context.Context) {
+	r.scanner.StartWorkers(ctx)
+}
+
+func (r *Runner) RawSocketHostDiscovery(ip string) {
+	r.handleHostDiscovery(ip)
+}
+
+func (r *Runner) RawSocketEnumeration(ctx context.Context, ip string, p *port.Port) {
+	select {
+	case <-ctx.Done():
+		return
+	default:
+		// performs cdn/waf scan exclusions checks
+		if !r.canIScanIfCDN(ip, p) {
+			gologger.Debug().Msgf("Skipping cdn target: %s:%d\n", ip, p.Port)
+			return
+		}
+
+		if r.scanner.ScanResults.IPHasPort(ip, p) {
+			return
+		}
+
+		r.limiter.Take()
+		switch p.Protocol {
+		case protocol.TCP:
+			r.scanner.EnqueueTCP(ip, scan.Syn, p)
+		case protocol.UDP:
+			r.scanner.EnqueueUDP(ip, p)
+		}
+	}
+}
+
+// check if an ip can be scanned in case CDN/WAF exclusions are enabled
+func (r *Runner) canIScanIfCDN(host string, port *port.Port) bool {
+	// if CDN ips are not excluded all scans are allowed
+	if !r.options.ExcludeCDN {
+		return true
+	}
+
+	// if exclusion is enabled, but the ip is not part of the CDN/WAF ips range we can scan
+	if ok, _, err := r.scanner.CdnCheck(host); err == nil && !ok {
+		return true
+	}
+
+	// If the cdn is part of the CDN ips range - only ports 80 and 443 are allowed
+	return port.Port == 80 || port.Port == 443
+}
+
+func (r *Runner) handleHostPort(ctx context.Context, host, payload string, p *port.Port) {
+	defer r.wgscan.Done()
+
+	select {
+	case <-ctx.Done():
+		return
+	default:
+		// performs cdn scan exclusions checks
+		if !r.canIScanIfCDN(host, p) {
+			gologger.Debug().Msgf("Skipping cdn target: %s:%d\n", host, p.Port)
+			return
+		}
+
+		if r.scanner.ScanResults.IPHasPort(host, p) {
+			return
+		}
+
+		r.limiter.Take()
+		open, err := r.scanner.ConnectPort(host, payload, p, r.options.GetTimeout())
+		if open && err == nil {
+			r.scanner.ScanResults.AddPort(host, p)
+			// ignore OnReceive when verification is enabled
+			if r.options.Verify {
+				return
+			}
+			if r.scanner.OnReceive != nil {
+				r.scanner.OnReceive(&result.HostResult{IP: host, Ports: []*port.Port{p}})
+			}
+		}
+	}
+}
+
+func (r *Runner) handleHostDiscovery(host string) {
+	r.limiter.Take()
+	// Pings
+	// - Icmp Echo Request
+	if r.options.IcmpEchoRequestProbe {
+		r.scanner.EnqueueICMP(host, scan.IcmpEchoRequest)
+	}
+	// - Icmp Timestamp Request
+	if r.options.IcmpTimestampRequestProbe {
+		r.scanner.EnqueueICMP(host, scan.IcmpTimestampRequest)
+	}
+	// - Icmp Netmask Request
+	if r.options.IcmpAddressMaskRequestProbe {
+		r.scanner.EnqueueICMP(host, scan.IcmpAddressMaskRequest)
+	}
+	// ARP scan
+	if r.options.ArpPing {
+		r.scanner.EnqueueEthernet(host, scan.Arp)
+	}
+	// Syn Probes
+	if len(r.options.TcpSynPingProbes) > 0 {
+		ports, _ := parsePortsSlice(r.options.TcpSynPingProbes)
+		r.scanner.EnqueueTCP(host, scan.Syn, ports...)
+	}
+	// Ack Probes
+	if len(r.options.TcpAckPingProbes) > 0 {
+		ports, _ := parsePortsSlice(r.options.TcpAckPingProbes)
+		r.scanner.EnqueueTCP(host, scan.Ack, ports...)
+	}
+	// IPv6-ND (for now we broadcast ICMPv6 to ff02::1)
+	if r.options.IPv6NeighborDiscoveryPing {
+		r.scanner.EnqueueICMP("ff02::1", scan.Ndp)
+	}
+}
+
+// vendorFromMAC resolves the hardware vendor for a MAC address using the
+// embedded IEEE OUI registry (pkg/macvendor). Returns an empty string when
+// the address is empty or the OUI prefix is unknown.
+func vendorFromMAC(mac string) string {
+	if mac == "" {
+		return ""
+	}
+	return macvendor.Lookup(mac)
+}
+
+// calculateDeadHosts re-streams the discovery targets and records the ones that
+// never responded as dead hosts. It must be called after host discovery has
+// settled (i.e. post warm-up) so that late responses are accounted for.
+// Re-streaming the CIDRs keeps memory bounded by the responsive host set
+// instead of the full probed range, which matters for large inputs (a /8 would
+// otherwise materialize ~16M entries just to compute the diff).
+func (r *Runner) calculateDeadHosts(targets4, targets6 []*net.IPNet) {
+	alive := make(map[string]struct{})
+	for ip := range r.scanner.HostDiscoveryResults.GetIPs() {
+		alive[ip] = struct{}{}
+	}
+
+	var total int
+	checkCidr := func(cidr *net.IPNet) {
+		ipStream, _ := mapcidr.IPAddressesAsStream(cidr.String())
+		for ip := range ipStream {
+			if r.excludedIpsNP != nil && !r.excludedIpsNP.ValidateAddress(ip) {
+				continue
+			}
+			total++
+			if _, ok := alive[ip]; !ok {
+				r.scanner.HostDiscoveryResults.AddDeadHost(ip)
+			}
+		}
+	}
+
+	for _, cidr := range targets4 {
+		checkCidr(cidr)
+	}
+	for _, cidr := range targets6 {
+		checkCidr(cidr)
+	}
+
+	if deadCount := len(r.scanner.HostDiscoveryResults.GetDeadHosts()); deadCount > 0 {
+		gologger.Info().Msgf("%d of %d discovery targets did not respond\n", deadCount, total)
+	}
+}
+
+func (r *Runner) SetSourceIP(sourceIP string) error {
+	ip := net.ParseIP(sourceIP)
+	if ip == nil {
+		return errors.New("invalid source ip")
+	}
+
+	switch {
+	case iputil.IsIPv4(sourceIP):
+		r.scanner.ListenHandler.SourceIp4 = ip
+	case iputil.IsIPv6(sourceIP):
+		r.scanner.ListenHandler.SourceIP6 = ip
+	default:
+		return errors.New("invalid ip type")
+	}
+
+	// Bind the raw transport sockets to the source so the kernel actually emits
+	// packets with it; otherwise the fast/raw send path lets the kernel choose
+	// the source by route and the flag is silently ignored. A non-owned source
+	// (e.g. spoofing) leaves SourceBound4/SourceBound6 false and falls back to the L2 path.
+	r.scanner.ListenHandler.BindSourceIP(r.scanner.ListenHandler.SourceIp4, r.scanner.ListenHandler.SourceIP6)
+
+	return nil
+}
+
+func (r *Runner) SetSourcePort(sourcePort string) error {
+	isValidPort := iputil.IsPort(sourcePort)
+	if !isValidPort {
+		return errors.New("invalid source port")
+	}
+
+	port, err := strconv.Atoi(sourcePort)
+	if err != nil {
+		return err
+	}
+
+	r.scanner.ListenHandler.Port = port
+
+	return nil
+}
+
+func (r *Runner) SetInterface(interfaceName string) error {
+	networkInterface, err := net.InterfaceByName(r.options.Interface)
+	if err != nil {
+		return err
+	}
+
+	r.scanner.NetworkInterface = networkInterface
+	r.scanner.ListenHandler.SourceHW = networkInterface.HardwareAddr
+	return nil
+}
+
+func (r *Runner) initServiceDetection(parentCtx context.Context) {
+	if !r.options.ServiceVersion {
+		return
+	}
+
+	probeFile := r.options.ServiceProbesFile
+	if probeFile == "" {
+		probeFile = fingerprint.LocateNmapProbes()
+	}
+	if probeFile == "" {
+		gologger.Warning().Msgf("could not find nmap-service-probes, skipping -sV. Install nmap or specify the path with --sV-probes")
+		r.options.ServiceVersion = false
+		scan.EnableTLSDetection = false
+		return
+	}
+
+	db, err := r.loadProbeDB(probeFile)
+	if err != nil {
+		gologger.Warning().Msgf("could not load service probes from %s, skipping -sV", probeFile)
+		r.options.ServiceVersion = false
+		scan.EnableTLSDetection = false
+		return
+	}
+
+	var opts []fingerprint.Option
+	opts = append(opts, fingerprint.WithWorkers(r.options.ServiceVersionWorkers))
+	opts = append(opts, fingerprint.WithTimeout(r.options.ServiceVersionTimeout))
+	opts = append(opts, fingerprint.WithFastMode(r.options.ServiceVersionFast))
+
+	if r.options.Proxy != "" {
+		proxyURL := r.options.Proxy
+		if !strings.Contains(proxyURL, "://") {
+			proxyURL = "socks5://" + proxyURL
+		}
+		if r.options.ProxyAuth != "" {
+			if u, err := url.Parse(proxyURL); err == nil {
+				creds := strings.SplitN(r.options.ProxyAuth, ":", 2)
+				if len(creds) == 2 {
+					u.User = url.UserPassword(creds[0], creds[1])
+					proxyURL = u.String()
+				}
+			}
+		}
+		parsedURL, err := url.Parse(proxyURL)
+		if err == nil {
+			dialer, err := proxy.FromURL(parsedURL, proxy.Direct)
+			if err == nil {
+				opts = append(opts, fingerprint.WithDialer(func(ctx context.Context, network, address string) (net.Conn, error) {
+					return dialer.Dial(network, address)
+				}))
+			}
+		}
+	}
+
+	engine := fingerprint.New(db, opts...)
+
+	ctx, cancel := context.WithCancel(parentCtx)
+	r.fpCancel = cancel
+	r.fpTargetCh = make(chan fingerprint.Target, 1000)
+	r.fpQueue = newFpQueue()
+	r.fpDone = make(chan struct{})
+	r.fpServices = make(map[string]*port.Service)
+
+	resultCh := engine.FingerprintStream(ctx, r.fpTargetCh)
+
+	// Forward queued targets into the engine. The bounded queue absorbs bursts
+	// from fast discovery (with backpressure at capacity); this goroutine blocks
+	// on the engine channel instead of dropping, and closes fpTargetCh once the
+	// queue is closed and drained. It captures the queue and channel as locals so
+	// waitServiceDetection can clear the Runner fields without racing this loop.
+	q := r.fpQueue
+	ch := r.fpTargetCh
+	go func() {
+		for {
+			t, ok := q.pop()
+			if !ok {
+				close(ch)
+				return
+			}
+			// The engine stops draining ch once ctx is cancelled; select on
+			// ctx.Done() so a full channel can't block this forwarder forever
+			// (leaking the goroutine and its retained target backlog).
+			select {
+			case ch <- t:
+			case <-ctx.Done():
+				close(ch)
+				return
+			}
+		}
+	}()
+
+	gologger.Info().Msgf("Fingerprinting open port(s) with %d workers", r.options.ServiceVersionWorkers)
+
+	go func() {
+		defer close(r.fpDone)
+		for sr := range resultCh {
+			key := net.JoinHostPort(sr.IP, strconv.Itoa(sr.Port))
+			r.fpMu.Lock()
+			r.fpServices[key] = sr.Service
+			r.fpMu.Unlock()
+			gologger.Verbose().Msgf("Identified %s on %s:%d (%s %s)", sr.Service.Name, sr.IP, sr.Port, sr.Service.Product, sr.Service.Version)
+		}
+	}()
+}
+
+func (r *Runner) waitServiceDetection(scanResults *result.Result) {
+	// Swap out the queue under the lock so a concurrent onReceive either sees a
+	// live queue or nil, never a half-cleared pointer. The forwarder holds its own
+	// captured reference, so it keeps draining after this.
+	r.fpMu.Lock()
+	q := r.fpQueue
+	r.fpQueue = nil
+	r.fpMu.Unlock()
+	if q == nil {
+		return
+	}
+	// Close the queue (the forwarder drains the remaining targets and then closes
+	// fpTargetCh, which ends the engine). Only clear fpTargetCh after fpDone so the
+	// forwarder has finished and a reused Runner (SDK) can start a fresh cycle.
+	q.close()
+	<-r.fpDone
+	r.fpTargetCh = nil
+
+	if scanResults != nil {
+		for hostResult := range scanResults.GetIPsPorts() {
+			for _, p := range hostResult.Ports {
+				key := net.JoinHostPort(hostResult.IP, strconv.Itoa(p.Port))
+				if svc, ok := r.fpServices[key]; ok {
+					p.Service = svc
+				}
+			}
+		}
+	}
+
+	if r.fpCancel != nil {
+		r.fpCancel()
+	}
+}
+
+func (r *Runner) handleOutput(scanResults *result.Result) {
+	var (
+		file   *os.File
+		err    error
+		output string
+	)
+
+	if r.options.Verify {
+		r.verifyReplay.Store(true)
+		for hostResult := range scanResults.GetIPsPorts() {
+			r.scanner.OnReceive(hostResult)
+		}
+		r.verifyReplay.Store(false)
+	}
+
+	// In case the user has given an output file, write all the found
+	// ports to the output file.
+	if r.options.Output != "" {
+		output = r.options.Output
+
+		// create path if not existing
+		outputFolder := filepath.Dir(output)
+		outputReady := true
+		if !fileutil.FolderExists(outputFolder) {
+			mkdirErr := os.MkdirAll(outputFolder, 0700)
+			if mkdirErr != nil {
+				gologger.Error().Msgf("Could not create output folder %s: %s\n", outputFolder, mkdirErr)
+				outputReady = false
+			}
+		}
+
+		// A failure to create the primary output file must not abort the whole
+		// function: under -oA the XML/greppable writers below can still succeed,
+		// so leave file nil and fall through instead of returning.
+		if outputReady {
+			file, err = os.Create(output)
+			if err != nil {
+				gologger.Error().Msgf("Could not create file %s: %s\n", output, err)
+				file = nil
+			} else {
+				defer func() {
+					if err := file.Close(); err != nil {
+						gologger.Error().Msgf("Could not close file %s: %s\n", output, err)
+					}
+				}()
+			}
+		}
+	}
+	csvFileHeaderEnabled := true
+	// The stdout buffer and the file are written by independent CSV writers, so
+	// they each need their own "header not yet written" flag; sharing one made the
+	// file lose its header whenever the stdout buffer consumed it first.
+	csvStdoutHeaderEnabled := true
+	hostPortPrinted := make(map[string]struct{})
+
+	switch {
+	case scanResults.HasIPsPorts():
+		for hostResult := range scanResults.GetIPsPorts() {
+			dt, err := r.hostsForIP(hostResult.IP)
+			if err != nil {
+				continue
+			}
+
+			if !ipMatchesIpVersions(hostResult.IP, r.options.IPVersion...) {
+				continue
+			}
+
+			// recover hostnames from ip:port combination
+			r.recoverHostnames(hostResult.IP, hostResult.Ports, dt)
+
+			buffer := bytes.Buffer{}
+			csvWriter := csv.NewWriter(&buffer)
+			for _, host := range dt {
+				buffer.Reset()
+				if host == "ip" {
+					host = hostResult.IP
+				}
+				isCDNIP, cdnName, _ := r.scanner.CdnCheck(hostResult.IP)
+
+				// Print enriched plain text for -sV mode (before summary)
+				if r.options.ServiceVersion && !r.options.JSON && !r.options.CSV && !r.options.DisableStdout {
+					for _, p := range hostResult.Ports {
+						hostPort := fmt.Sprintf("%s:%d", host, p.Port)
+						if _, seen := hostPortPrinted[hostPort]; seen {
+							continue
+						}
+						hostPortPrinted[hostPort] = struct{}{}
+						line := hostPort
+						if serviceInfo := formatServiceInfo(p.Service); serviceInfo != "" {
+							line += " [" + serviceInfo + "]"
+						}
+						if r.options.OutputCDN && isCDNIP {
+							line += " [" + cdnName + "]"
+						}
+						gologger.Silent().Msgf("%s\n", line)
+					}
+				}
+
+				serviceCount := 0
+				for _, p := range hostResult.Ports {
+					if p.Service != nil && p.Service.Name != "" {
+						serviceCount++
+					}
+				}
+				if serviceCount > 0 {
+					gologger.Info().Msgf("Found %d ports %d services on host %s (%s)\n", len(hostResult.Ports), serviceCount, host, hostResult.IP)
+				} else {
+					gologger.Info().Msgf("Found %d ports on host %s (%s)\n", len(hostResult.Ports), host, hostResult.IP)
+				}
+
+				// console output
+				if r.options.JSON || r.options.CSV {
+					for _, p := range hostResult.Ports {
+						data := &Result{IP: hostResult.IP, TimeStamp: time.Now().UTC(), MacAddress: hostResult.MacAddress, MacVendor: vendorFromMAC(hostResult.MacAddress)}
+						if r.options.OutputCDN {
+							data.IsCDNIP = isCDNIP
+							data.CDNName = cdnName
+						}
+						if host != hostResult.IP {
+							data.Host = host
+						}
+						data.Port = p.Port
+						data.Protocol = p.Protocol.String()
+						//nolint
+						data.TLS = p.TLS
+
+						copyServiceFields(data, p.Service)
+						if r.options.JSON {
+							b, err := data.JSON(r.options.ExcludeOutputFields)
+							if err != nil {
+								continue
+							}
+							_, _ = fmt.Fprintf(&buffer, "%s\n", b)
+						} else if r.options.CSV {
+							if csvStdoutHeaderEnabled {
+								writeCSVHeaders(data, csvWriter, r.options.ExcludeOutputFields)
+								csvStdoutHeaderEnabled = false
+							}
+							writeCSVRow(data, csvWriter, r.options.ExcludeOutputFields)
+						}
+					}
+				}
+
+				if !r.options.DisableStdout && r.finalJSONCSVToStdout() {
+					if r.options.JSON {
+						gologger.Silent().Msgf("%s", buffer.String())
+					} else if r.options.CSV {
+						csvWriter.Flush()
+						gologger.Silent().Msgf("%s", buffer.String())
+					}
+				}
+
+				// file output
+				if file != nil {
+					if r.options.JSON {
+						err = WriteJSONOutputWithMac(host, hostResult.IP, hostResult.MacAddress, hostResult.Ports, r.options.OutputCDN, isCDNIP, cdnName, r.options.ExcludeOutputFields, file)
+					} else if r.options.CSV {
+						err = WriteCsvOutputWithMac(host, hostResult.IP, hostResult.MacAddress, hostResult.Ports, r.options.OutputCDN, isCDNIP, cdnName, csvFileHeaderEnabled, r.options.ExcludeOutputFields, file)
+						// Flip immediately after the first CSV write: multiple
+						// hostnames for one IP would otherwise each re-emit the header.
+						csvFileHeaderEnabled = false
+					} else {
+						err = WriteHostOutput(host, hostResult.Ports, r.options.OutputCDN, cdnName, file)
+					}
+					if err != nil {
+						gologger.Error().Msgf("Could not write results to file %s for %s: %s\n", output, host, err)
+					}
+				}
+
+				if r.options.OnResult != nil {
+					r.options.OnResult(&result.HostResult{Host: host, IP: hostResult.IP, Ports: hostResult.Ports})
+				}
+			}
+			csvFileHeaderEnabled = false
+		}
+	case scanResults.HasIPS():
+		for hostIP := range scanResults.GetIPs() {
+			dt, err := r.hostsForIP(hostIP)
+			if err != nil {
+				continue
+			}
+			if !ipMatchesIpVersions(hostIP, r.options.IPVersion...) {
+				continue
+			}
+
+			buffer := bytes.Buffer{}
+			writer := csv.NewWriter(&buffer)
+			for _, host := range dt {
+				buffer.Reset()
+				if host == "ip" {
+					host = hostIP
+				}
+				isCDNIP, cdnName, _ := r.scanner.CdnCheck(hostIP)
+				gologger.Info().Msgf("Found alive host %s (%s)\n", host, hostIP)
+				// console output
+				// prefer the MAC captured during discovery (e.g. from an ARP
+				// reply); fall back to the local ARP table for private IPs.
+				macAddress := r.scanner.HostDiscoveryResults.GetMACAddress(hostIP)
+				if macAddress == "" {
+					if parsedIP := net.ParseIP(hostIP); parsedIP != nil && parsedIP.IsPrivate() {
+						if mac, err := result.GetMacAddress(hostIP); err == nil {
+							macAddress = mac
+						}
+					}
+				}
+				macVendor := vendorFromMAC(macAddress)
+				if r.options.JSON || r.options.CSV {
+					data := &Result{IP: hostIP, TimeStamp: time.Now().UTC(), MacAddress: macAddress, MacVendor: macVendor}
+					if r.options.OutputCDN {
+						data.IsCDNIP = isCDNIP
+						data.CDNName = cdnName
+					}
+					if host != hostIP {
+						data.Host = host
+					}
+					if r.options.JSON {
+						b, err := data.JSON(r.options.ExcludeOutputFields)
+						if err != nil {
+							continue
+						}
+						_, _ = fmt.Fprintf(&buffer, "%s\n", b)
+						gologger.Silent().Msgf("%s", buffer.String())
+					} else {
+						if csvFileHeaderEnabled {
+							writeCSVHeaders(data, writer, r.options.ExcludeOutputFields)
+							csvFileHeaderEnabled = false
+						}
+						writeCSVRow(data, writer, r.options.ExcludeOutputFields)
+						writer.Flush()
+						gologger.Silent().Msgf("%s", buffer.String())
+					}
+				} else {
+					if r.options.OutputCDN && isCDNIP {
+						gologger.Silent().Msgf("%s [%s]\n", host, cdnName)
+					} else {
+						gologger.Silent().Msgf("%s\n", host)
+					}
+				}
+				// file output
+				if file != nil {
+					if r.options.JSON {
+						err = WriteJSONOutputWithMac(host, hostIP, macAddress, nil, r.options.OutputCDN, isCDNIP, cdnName, r.options.ExcludeOutputFields, file)
+					} else if r.options.CSV {
+						err = WriteCsvOutputWithMac(host, hostIP, macAddress, nil, r.options.OutputCDN, isCDNIP, cdnName, csvFileHeaderEnabled, r.options.ExcludeOutputFields, file)
+					} else {
+						err = WriteHostOutput(host, nil, r.options.OutputCDN, cdnName, file)
+					}
+					if err != nil {
+						gologger.Error().Msgf("Could not write results to file %s for %s: %s\n", output, host, err)
+					}
+				}
+
+				if r.options.OnResult != nil {
+					r.options.OnResult(&result.HostResult{Host: host, IP: hostIP})
+				}
+			}
+			csvFileHeaderEnabled = false
+		}
+	}
+
+	r.outputDeadHosts(file, &csvFileHeaderEnabled)
+
+	r.writeNmapFormats(scanResults)
+}
+
+// outputDeadHosts reports the hosts that were probed during host discovery but
+// never responded, when -show-dead is enabled. Dead hosts are only ever
+// recorded in the discovery result set, so this is a no-op for plain port
+// scans. In plain-text mode it logs an informational line only (keeping the
+// machine-readable stdout/file streams limited to alive hosts); JSON and CSV
+// modes emit a dedicated record flagged with is_dead_host.
+func (r *Runner) outputDeadHosts(file *os.File, csvFileHeaderEnabled *bool) {
+	if !r.options.ShowDeadHosts || !r.scanner.HostDiscoveryResults.HasDeadHosts() {
+		return
+	}
+
+	for _, deadIP := range r.scanner.HostDiscoveryResults.GetDeadHosts() {
+		if !ipMatchesIpVersions(deadIP, r.options.IPVersion...) {
+			continue
+		}
+
+		hosts, _ := r.hostsForIP(deadIP)
+		if len(hosts) == 0 {
+			hosts = []string{deadIP}
+		}
+
+		for _, host := range hosts {
+			if host == "ip" {
+				host = deadIP
+			}
+			gologger.Info().Msgf("Found dead host %s (%s)\n", host, deadIP)
+
+			if !r.options.JSON && !r.options.CSV {
+				continue
+			}
+
+			data := &Result{IP: deadIP, TimeStamp: time.Now().UTC(), IsDeadHost: true}
+			if host != deadIP {
+				data.Host = host
+			}
+
+			buffer := bytes.Buffer{}
+			if r.options.JSON {
+				b, err := data.JSON(r.options.ExcludeOutputFields)
+				if err != nil {
+					continue
+				}
+				_, _ = fmt.Fprintf(&buffer, "%s\n", b)
+			} else {
+				writer := csv.NewWriter(&buffer)
+				if *csvFileHeaderEnabled {
+					writeCSVHeaders(data, writer, r.options.ExcludeOutputFields)
+					*csvFileHeaderEnabled = false
+				}
+				writeCSVRow(data, writer, r.options.ExcludeOutputFields)
+				writer.Flush()
+			}
+
+			if !r.options.DisableStdout {
+				gologger.Silent().Msgf("%s", buffer.String())
+			}
+			if file != nil {
+				if _, err := file.WriteString(buffer.String()); err != nil {
+					gologger.Error().Msgf("Could not write dead host %s to file: %s\n", deadIP, err)
+				}
+			}
+		}
+	}
+}
+
+func ipMatchesIpVersions(ip string, ipVersions ...string) bool {
+	for _, ipVersion := range ipVersions {
+		if ipVersion == scan.IPv4 && iputil.IsIPv4(ip) {
+			return true
+		}
+		if ipVersion == scan.IPv6 && iputil.IsIPv6(ip) {
+			return true
+		}
+	}
+	return false
+}

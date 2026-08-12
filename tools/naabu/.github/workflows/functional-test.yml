@@ -1,0 +1,36 @@
+name: 🧪 Functional Test
+
+on:
+  pull_request:
+    paths:
+      - '**.go'
+      - '**.mod'
+  workflow_dispatch:
+
+jobs:
+  functional:
+    name: Functional Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest] # Todo: windows-latest, macOS-latest
+
+    steps:
+      - uses: actions/checkout@v7
+      - uses: projectdiscovery/actions/setup/go@v1
+
+      - name: Install required packages (nmap, simplehttpserver)
+        run: |
+          sudo apt install nmap
+          go install -race github.com/projectdiscovery/simplehttpserver/cmd/simplehttpserver@latest
+
+      - name: Run the simplehttpserver on 127.0.0.1:8000
+        run: |
+          export PATH=$PATH:$(go env GOPATH)/bin
+          simplehttpserver -listen 127.0.0.1:8000 &
+
+      - name: Functional Tests
+        run: |
+          chmod +x run.sh
+          bash run.sh
+        working-directory: cmd/functional-test

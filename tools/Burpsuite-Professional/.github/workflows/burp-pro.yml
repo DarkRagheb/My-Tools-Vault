@@ -1,0 +1,103 @@
+name: Burpsuite Professional
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+  schedule:
+    - cron: "0 0 * * 0"
+    
+jobs:
+  download-and-release:
+    runs-on: ubuntu-24.04-arm
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v5
+      with:
+        fetch-depth: 0
+
+    - name: Download files
+      run: |
+        sudo apt update
+        sudo apt install axel -y
+        mkdir -p downloads
+        cd downloads
+        axel -o burpsuite_pro_v2026.jar https://portswigger.net/burp/releases/download?product=pro&type=Jar
+        
+    - name: Verifying Checksum
+      run: |
+        cd downloads
+        echo MD5: > md5
+        md5sum burpsuite_pro_v2026.jar >> md5
+        
+        echo SHA1: > sha1
+        sha1sum burpsuite_pro_v2026.jar >> sha1
+
+        echo SHA256: > sha256
+        sha256sum burpsuite_pro_v2026.jar >> sha256
+
+        echo SHA512: > sha512
+        sha512sum burpsuite_pro_v2026.jar >> sha512
+        
+    - name: Determine release tag
+      id: get_tag
+      run: |
+        if [ "${{ github.event_name }}" == "release" ]; then
+          TAG_NAME="${{ github.event.release.tag_name }}"
+        else
+          TAG_NAME="burpsuite-pro"
+        fi
+        echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+
+    - name: Delete existing release assets
+      uses: actions/github-script@v8
+      with:
+        script: |
+          const { data: releases } = await github.rest.repos.listReleases({
+            owner: context.repo.owner,
+            repo: context.repo.repo
+          });
+          
+          const targetRelease = releases.find(release => release.tag_name === '${{ steps.get_tag.outputs.tag_name }}');
+          
+          if (targetRelease) {
+            console.log(`Found release with tag: ${{ steps.get_tag.outputs.tag_name }}`);
+            console.log(`Release ID: ${targetRelease.id}`);
+            
+            const { data: assets } = await github.rest.repos.listReleaseAssets({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: targetRelease.id
+            });
+            
+            console.log(`Found ${assets.length} assets to delete`);
+            
+            for (const asset of assets) {
+              console.log(`Deleting asset: ${asset.name} (ID: ${asset.id})`);
+              await github.rest.repos.deleteReleaseAsset({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                asset_id: asset.id
+              });
+            }
+            
+            console.log('All existing assets deleted');
+          } else {
+            console.log(`No release found with tag: ${{ steps.get_tag.outputs.tag_name }}`);
+          }
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Upload files to existing release
+      uses: softprops/action-gh-release@v3
+      with:
+        tag_name: ${{ steps.get_tag.outputs.tag_name }}
+        files: |
+          downloads/*.jar
+          downloads/md5
+          downloads/sha1
+          downloads/sha256
+          downloads/sha512
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

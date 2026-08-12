@@ -1,0 +1,5 @@
+.DS_Store
+tests/udb_*
+nikto.conf
+.cursor
+program/.last_update_check

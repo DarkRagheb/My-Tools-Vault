@@ -1,0 +1,170 @@
+---
+app-id: org.onionshare.OnionShare
+command: onionshare
+runtime: org.kde.Platform
+runtime-version: "6.10"
+sdk: org.kde.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.golang
+  - org.freedesktop.Sdk.Extension.llvm22
+separate-locales: false
+finish-args:
+  - "--device=dri"
+  - "--share=ipc"
+  - "--share=network"
+  - "--socket=wayland"
+  - "--socket=fallback-x11"
+  - "--talk-name=org.freedesktop.Notifications"
+  - "--talk-name=org.freedesktop.secrets"
+  - "--filesystem=~/OnionShare:create"
+cleanup:
+  - "/go"
+  - "/bin/scripts"
+modules:
+  - name: pyside6
+    buildsystem: simple
+    build-commands: []
+    modules:
+      - name: pyside6-essentials
+        only-arches:
+          - x86_64
+        buildsystem: simple
+        build-commands:
+          - pip3 install --verbose --exists-action=i --no-index --find-links="file://${PWD}"
+            --prefix=${FLATPAK_DEST} "pyside6-essentials" --no-build-isolation
+        sources:
+          - type: file
+            url: https://files.pythonhosted.org/packages/d2/f9/aa4ff511ff1f3dd177f7e8f5a635e03fe578fa2045c8d6be4577e7db3b28/PySide6_Essentials-6.8.2.1-cp39-abi3-manylinux_2_28_x86_64.whl
+            sha256: 5ab31e5395a4724102edd6e8ff980fa3f7cde2aa79050763a1dcc30bb914195a
+        modules:
+          - name: shiboken6
+            buildsystem: simple
+            build-commands:
+              - pip3 install --verbose --exists-action=i --no-index --find-links="file://${PWD}"
+                --prefix=${FLATPAK_DEST} "shiboken6" --no-build-isolation
+            sources:
+              - type: file
+                url: https://files.pythonhosted.org/packages/7b/ff/ab4f287b9573e50b5a47c10e2af8feb5abecc3c7431bd5deec135efc969e/shiboken6-6.8.2.1-cp39-abi3-manylinux_2_28_x86_64.whl
+                sha256: c83e90056f13d0872cc4d2b7bf60b6d6e3b1b172f1f91910c0ba5b641af01758
+      - name: pyside6-essentials-aarch64
+        only-arches:
+          - aarch64
+        buildsystem: simple
+        build-commands:
+          - pip3 install --verbose --exists-action=i --no-index --find-links="file://${PWD}"
+            --prefix=${FLATPAK_DEST} "pyside6-essentials" --no-build-isolation
+        sources:
+          - type: file
+            url: https://files.pythonhosted.org/packages/fd/69/595002d860ee58431fe7add081d6f54fff94ae9680f2eb8cd355c1649bb6/PySide6_Essentials-6.8.2.1-cp39-abi3-manylinux_2_39_aarch64.whl
+            sha256: 7aed46f91d44399b4c713cf7387f5fb6f0114413fbcdbde493a528fb8e19f6ed
+        modules:
+          - name: shiboken6
+            buildsystem: simple
+            build-commands:
+              - pip3 install --verbose --exists-action=i --no-index --find-links="file://${PWD}"
+                --prefix=${FLATPAK_DEST} "shiboken6" --no-build-isolation
+            sources:
+              - type: file
+                url: https://files.pythonhosted.org/packages/a6/b0/4fb102eb5260ee06d379769f3c4f0b82ef397c15f1cbbbbb3f6dceb86d5d/shiboken6-6.8.2.1-cp39-abi3-manylinux_2_39_aarch64.whl
+                sha256: 8592401423acc693f51dbbfae5e7493cc3ed6738be79daaf90afa07f4da5bb25
+  - name: snowflake-client
+    buildsystem: simple
+    build-options:
+      append-path: /usr/lib/sdk/golang/bin
+      env:
+        GOBIN: "/app/bin/"
+        GO11MODULE: on
+        GOROOT: /usr/lib/sdk/golang
+    build-commands:
+      - ". /usr/lib/sdk/golang/enable.sh && go build -mod=vendor -o /app/bin/snowflake-client ./client"
+    sources:
+      - type: git
+        url: https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake.git
+        tag: v2.13.1
+      - snowflake/go.mod.yml
+  - name: obfs4proxy
+    buildsystem: simple
+    build-options:
+      append-path: /usr/lib/sdk/golang/bin
+      env:
+        GOBIN: "/app/bin/"
+        GO11MODULE: on
+        GOROOT: /usr/lib/sdk/golang
+    build-commands:
+      - ". /usr/lib/sdk/golang/enable.sh && go build -mod=vendor -o /app/bin/obfs4proxy ./obfs4proxy"
+    sources:
+      - type: git
+        url: https://gitlab.com/yawning/obfs4.git
+        tag: obfs4proxy-0.0.14
+      - obfs4proxy/go.mod.yml
+  - name: meek-client
+    buildsystem: simple
+    build-options:
+      append-path: /usr/lib/sdk/golang/bin
+      env:
+        GOBIN: "/app/bin/"
+        GO11MODULE: on
+        GOROOT: /usr/lib/sdk/golang
+    build-commands:
+      - ". /usr/lib/sdk/golang/enable.sh && go build -mod=vendor -o /app/bin/meek-client ./meek-client"
+    sources:
+      - type: git
+        url: https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/meek.git
+        tag: v0.38.0
+      - meek-client/go.mod.yml
+  - name: tor
+    buildsystem: autotools
+    sources:
+      - type: archive
+        sha256: 2e6c1720118c812acf0079fd47cf91b6bfaba5d766c321c4d3d2a28d6a11a8ed
+        url: https://dist.torproject.org/tor-0.4.9.11.tar.gz
+    modules:
+      - name: libevent
+        buildsystem: autotools
+        sources:
+          - type: archive
+            url: https://github.com/libevent/libevent/releases/download/release-2.1.12-stable/libevent-2.1.12-stable.tar.gz
+            sha256: 92e6de1be9ec176428fd2367677e61ceffc2ee1cb119035037a27d346b0403bb
+  - name: onionshare
+    buildsystem: simple
+    ensure-writable:
+      - easy-install.pth
+    build-commands:
+      - rm desktop/pyproject.toml
+      - export PIP_NO_INDEX=1 PIP_FIND_LINKS="file://${PWD}" && cd desktop && pip3 install --prefix=${FLATPAK_DEST} --no-deps --use-pep517 --no-index --find-links="${PIP_FIND_LINKS}" .
+      - cd desktop && install -D -m0644 org.onionshare.OnionShare.appdata.xml ${FLATPAK_DEST}/share/metainfo/${FLATPAK_ID}.appdata.xml
+      - cd desktop && install -D -m0644 org.onionshare.OnionShare.svg ${FLATPAK_DEST}/share/icons/hicolor/scalable/apps/org.onionshare.OnionShare.svg
+      - cd desktop && install -D -m0644 org.onionshare.OnionShare.desktop ${FLATPAK_DEST}/share/applications/${FLATPAK_ID}.desktop
+    sources:
+      - type: dir
+        path: ..
+      - type: file
+        url: https://files.pythonhosted.org/packages/94/b8/f1f62a5e3c0ad2ff1d189590bfa4c46b4f3b6e49cef6f26c6ee4e575394d/setuptools-80.10.2-py3-none-any.whl
+        sha256: 95b30ddfb717250edb492926c92b5221f7ef3fbcc2b07579bcd4a27da21d0173
+      - type: file
+        url: https://files.pythonhosted.org/packages/fa/7f/4c07234086edbce4a0a446209dc0cb08a19bb206a3ea53b2f56a403f983b/wheel-0.41.3-py3-none-any.whl
+        sha256: 488609bc63a29322326e05560731bf7bfea8e48ad646e1f5e40d366607de0942
+      # - type: git
+      #   url: https://github.com/onionshare/onionshare.git
+      #   tag: v2.6.3
+    modules:
+      - onionshare-desktop.yaml
+      - name: onionshare-cli
+        buildsystem: simple
+        build-commands:
+          - rm cli/pyproject.toml
+          - export PIP_NO_INDEX=1 PIP_FIND_LINKS="file://${PWD}" && cd cli && pip3 install --prefix=${FLATPAK_DEST} --no-deps --use-pep517 --no-index --find-links="${PIP_FIND_LINKS}" .
+        sources:
+          - type: dir
+            path: ..
+          - type: file
+            url: https://files.pythonhosted.org/packages/94/b8/f1f62a5e3c0ad2ff1d189590bfa4c46b4f3b6e49cef6f26c6ee4e575394d/setuptools-80.10.2-py3-none-any.whl
+            sha256: 95b30ddfb717250edb492926c92b5221f7ef3fbcc2b07579bcd4a27da21d0173
+          - type: file
+            url: https://files.pythonhosted.org/packages/fa/7f/4c07234086edbce4a0a446209dc0cb08a19bb206a3ea53b2f56a403f983b/wheel-0.41.3-py3-none-any.whl
+            sha256: 488609bc63a29322326e05560731bf7bfea8e48ad646e1f5e40d366607de0942
+        #   - type: git
+        #     url: https://github.com/onionshare/onionshare.git
+        #     tag: v2.6.3
+        modules:
+          - onionshare-cli.yaml

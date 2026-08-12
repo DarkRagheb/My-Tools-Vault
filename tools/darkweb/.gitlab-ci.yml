@@ -1,0 +1,23 @@
+image: python:latest
+
+services:
+  - postgres:latest
+
+variables:
+  POSTGRES_DB: ci
+
+cache:
+  paths:
+  - ~/.cache/pip/
+
+before_script:
+  - pip install pipenv
+  - python -V
+
+test:
+  variables:
+    DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/$POSTGRES_DB"
+  script:
+  - pipenv install --dev
+  - pipenv run python manage.py migrate
+  - pipenv run python manage.py test

@@ -1,0 +1,62 @@
+name: 🔨 Build Test
+
+on:
+  pull_request:
+    paths:
+      - '**.go'
+      - '**.mod'
+  workflow_dispatch:
+
+jobs:
+  lint:
+    name: "Lint"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: projectdiscovery/actions/setup/go@v1
+      - uses: projectdiscovery/actions/golangci-lint/v2@v1
+
+  tests:
+    name: "Tests"
+    needs: ["lint"]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: projectdiscovery/actions/setup/go@v1
+
+      - name: Build
+        run: go build .
+        working-directory: cmd/naabu/
+
+      - name: Test
+        run: go test -race ./...
+
+      - name: Integration Tests
+        if: ${{ matrix.os != 'windows-latest' }}
+        env:
+          GH_ACTION: true
+        run: bash run.sh
+        working-directory: integration_tests/
+
+      - name: Race Condition Tests - Standard User
+        if: ${{ matrix.os != 'windows-latest' }}
+        run: go run -race . -host scanme.sh
+        working-directory: cmd/naabu/
+
+      - name: Race Condition Tests - Root User
+        if: ${{ matrix.os != 'windows-latest' }}
+        run: sudo go run -race . -host scanme.sh
+        working-directory: cmd/naabu/
+
+  release:
+    name: "Release test"
+    needs: ["tests"]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: projectdiscovery/actions/setup/go@v1
+      - uses: projectdiscovery/actions/goreleaser@v1

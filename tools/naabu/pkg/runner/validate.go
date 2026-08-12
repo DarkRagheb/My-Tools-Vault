@@ -1,0 +1,290 @@
+package runner
+
+import (
+	"errors"
+	"flag"
+	"fmt"
+	"net"
+	"strings"
+	"time"
+
+	"github.com/projectdiscovery/naabu/v2/pkg/port"
+	"github.com/projectdiscovery/naabu/v2/pkg/privileges"
+	"github.com/projectdiscovery/naabu/v2/pkg/scan"
+	"github.com/projectdiscovery/utils/errkit"
+	fileutil "github.com/projectdiscovery/utils/file"
+	iputil "github.com/projectdiscovery/utils/ip"
+	osutil "github.com/projectdiscovery/utils/os"
+	sliceutil "github.com/projectdiscovery/utils/slice"
+
+	"github.com/projectdiscovery/gologger"
+	"github.com/projectdiscovery/gologger/formatter"
+	"github.com/projectdiscovery/gologger/levels"
+)
+
+var (
+	errNoInputList   = errors.New("no input list provided")
+	errOutputMode    = errors.New("both verbose and silent mode specified")
+	errZeroValue     = errors.New("cannot be zero")
+	errTwoOutputMode = errors.New("both json and csv mode specified")
+)
+
+// ValidateOptions validates the configuration options passed
+func (options *Options) ValidateOptions() error {
+	// Check if Host, list of domains, or stdin info was provided.
+	// If none was provided, then return.
+	if options.Host == nil && options.HostsFile == "" && !options.Stdin && len(flag.Args()) == 0 {
+		return errNoInputList
+	}
+
+	if (options.WithHostDiscovery || options.OnlyHostDiscovery) && options.ScanType != SynScan {
+		gologger.Warning().Msgf("host discovery requires syn scan, automatically switching to syn scan")
+		options.ScanType = SynScan
+	}
+
+	// Both verbose and silent flags were used
+	if options.Verbose && options.Silent {
+		return errOutputMode
+	}
+
+	if options.JSON && options.CSV {
+		return errTwoOutputMode
+	}
+
+	if options.TimingTemplate < 0 || options.TimingTemplate > 5 {
+		return fmt.Errorf("invalid timing template %d (valid range 0-5)", options.TimingTemplate)
+	}
+
+	if options.ShardTotal != 0 && (options.ShardTotal < 1 || options.Shard < 1 || options.Shard > options.ShardTotal) {
+		return fmt.Errorf("invalid shard %d/%d (require 1 <= index <= total)", options.Shard, options.ShardTotal)
+	}
+
+	// Sharding partitions the (host, port) index space, but the smart-scan and
+	// stream paths do not consult inShard, so combining them would make every
+	// node scan the full space (duplicated work, not a partition). Reject it
+	// rather than silently mis-sharding.
+	if options.ShardTotal > 1 {
+		if options.SmartScan {
+			return fmt.Errorf("-shard is not supported with -smart-scan")
+		}
+		if options.Stream {
+			return fmt.Errorf("-shard is not supported with -stream")
+		}
+	}
+
+	if options.TxWorkers < 0 || options.TxWorkers > 256 {
+		return fmt.Errorf("invalid tx-workers %d (valid range 0-256, 0 = default)", options.TxWorkers)
+	}
+
+	if options.Rate == 0 {
+		return errkit.Wrap(errZeroValue, "rate")
+	} else if !privileges.IsPrivileged && options.Rate == DefaultRateSynScan {
+		options.Rate = DefaultRateConnectScan
+	}
+
+	if !privileges.IsPrivileged && options.Retries == DefaultRetriesSynScan {
+		options.Retries = DefaultRetriesConnectScan
+	}
+
+	if options.Interface != "" {
+		if _, err := net.InterfaceByName(options.Interface); err != nil {
+			return fmt.Errorf("interface %s not found", options.Interface)
+		}
+	}
+
+	if fileutil.FileExists(options.Resolvers) {
+		for resolver, err := range fileutil.Lines(options.Resolvers) {
+			if err != nil {
+				return err
+			}
+			options.baseResolvers = append(options.baseResolvers, resolver)
+		}
+	} else if options.Resolvers != "" {
+		for _, resolver := range strings.Split(options.Resolvers, ",") {
+			options.baseResolvers = append(options.baseResolvers, strings.TrimSpace(resolver))
+		}
+	}
+
+	// passive mode enables automatically stream
+	if options.Passive {
+		options.Stream = true
+	}
+
+	// stream
+	if options.Stream {
+		if options.Resume {
+			return errors.New("resume not supported in stream active mode")
+		}
+		if options.EnableProgressBar {
+			return errors.New("stats not supported in stream active mode")
+		}
+		if options.Nmap {
+			return errors.New("nmap not supported in stream active mode")
+		}
+	}
+
+	// stream passive
+	if options.Verify && options.Stream && !options.Passive {
+		return errors.New("verify not supported in stream active mode")
+	}
+
+	// Parse and validate source ip and source port
+	// checks if source ip is ip only
+	isOnlyIP := iputil.IsIP(options.SourceIP)
+	if options.SourceIP != "" && !isOnlyIP {
+		ip, port, err := net.SplitHostPort(options.SourceIP)
+		if err != nil {
+			return err
+		}
+		options.SourceIP = ip
+		options.SourcePort = port
+	}
+
+	if len(options.IPVersion) > 0 && !sliceutil.ContainsItems([]string{scan.IPv4, scan.IPv6}, options.IPVersion) {
+		return errors.New("IP Version must be 4 and/or 6")
+	}
+	// Return error if any host discovery releated option is provided but host discovery is disabled
+	if !options.WithHostDiscovery && options.hasProbes() {
+		return errors.New("discovery probes were provided but host discovery is disabled")
+	}
+
+	// Host Discovery mode needs provileged access
+	if options.OnlyHostDiscovery && !privileges.IsPrivileged {
+		if osutil.IsWindows() {
+			return errors.New("host discovery not (yet) supported on windows")
+		}
+		return errors.New("sudo access required to perform host discovery")
+	}
+
+	if options.PortThreshold < 0 || options.PortThreshold > 65535 {
+		return errors.New("port threshold must be between 0 and 65535")
+	}
+
+	if options.Proxy != "" && options.ScanType == SynScan {
+		gologger.Warning().Msgf("Syn Scan can't be used with socks proxy: falling back to connect scan")
+		options.ScanType = ConnectScan
+	}
+
+	if options.ConnectPayload != "" && options.ScanType != ConnectScan {
+		return errors.New("connect payload can only be used with connect scan")
+	}
+
+	if options.DnsOrder != "p" && options.DnsOrder != "l" && options.DnsOrder != "lp" && options.DnsOrder != "pl" {
+		return errors.New("dns-order must be one of p, l, lp, pl")
+	}
+
+	if options.DnsOrder == "p" && options.Proxy == "" {
+		return errors.New("dns-order 'p' (proxy-only) requires --proxy to be set")
+	}
+
+	if options.ScanType == SynScan && scan.PkgRouter == nil {
+		gologger.Warning().Msgf("Routing could not be determined (are you using a VPN?).falling back to connect scan")
+		options.ScanType = ConnectScan
+	}
+
+	if options.ServiceVersion && options.ServiceVersionWorkers <= 0 {
+		options.ServiceVersionWorkers = 25
+	}
+	if options.ServiceVersion && options.ServiceVersionTimeout <= 0 {
+		options.ServiceVersionTimeout = 5 * time.Second
+	}
+
+	if options.WarmUpTime <= 0 {
+		gologger.Debug().Msgf("Warm up time must be greater than 0, setting to 2")
+		options.WarmUpTime = 2
+	}
+
+	if options.SmartScan && options.Stream {
+		return errors.New("smart scan is not supported in stream mode")
+	}
+	if options.SmartScan && options.Passive {
+		return errors.New("smart scan is not supported in passive mode")
+	}
+	if options.PredictionThreshold < 0 || options.PredictionThreshold > 100 {
+		return errors.New("prediction threshold must be between 0 and 100")
+	}
+	// Warn when -uP is set but the port list contains no UDP ports: the
+	// feature will load the probe database but never send any probes,
+	// which is misleading for the user. We check the raw Ports string and
+	// PortsFile because ParsePorts has not run yet at validation time. The
+	// heuristic is: unless the user passed at least one "u:" segment, no
+	// UDP port will be scanned.
+	if options.UDPProbes && !options.hasUDPPorts() {
+		gologger.Warning().Msgf("-uP (UDP probes) is enabled but no UDP ports were specified. " +
+			"Add UDP ports with -p u:53,u:123 or similar. Without UDP ports -uP has no effect.")
+	}
+
+	return nil
+}
+
+// configureOutput configures the output on the screen
+// expandOutputAll turns -oA <base> into the three concrete output targets
+// (<base>.json, <base>.xml, <base>.gnmap). Explicitly set -o/-oX/-oG win so the
+// user can override any single target.
+func (options *Options) expandOutputAll() {
+	base := strings.TrimSpace(options.OutputAll)
+	if base == "" {
+		return
+	}
+	if options.Output == "" {
+		// Honor an explicit -csv so -oA does not force JSON and then trip the
+		// "json and csv both specified" validation error.
+		if options.CSV {
+			options.Output = base + ".csv"
+		} else {
+			options.Output = base + ".json"
+			options.JSON = true
+		}
+	}
+	if options.XMLOutput == "" {
+		options.XMLOutput = base + ".xml"
+	}
+	if options.GrepOutput == "" {
+		options.GrepOutput = base + ".gnmap"
+	}
+}
+
+func (options *Options) configureOutput() {
+	// gologger enables levels with `level <= maxLevel` and orders
+	// Fatal < Silent < Error < Info < Warning < Debug < Verbose.
+	// Its package default max is Info, which silently drops Warning().
+	// Raise the baseline so Warning is visible unless -silent.
+	gologger.DefaultLogger.SetMaxLevel(levels.LevelWarning)
+	if options.Verbose {
+		gologger.DefaultLogger.SetMaxLevel(levels.LevelVerbose)
+	}
+	if options.Debug {
+		gologger.DefaultLogger.SetMaxLevel(levels.LevelDebug)
+	}
+	if options.NoColor {
+		gologger.DefaultLogger.SetFormatter(formatter.NewCLI(true))
+	}
+	if options.Silent {
+		gologger.DefaultLogger.SetMaxLevel(levels.LevelSilent)
+	}
+}
+
+// ConfigureHostDiscovery enables default probes if none is specified
+// but host discovery option was requested
+func (options *Options) configureHostDiscovery(ports []*port.Port) {
+	// if less than two ports are specified as input, reduce time and scan directly
+	if len(ports) <= 2 {
+		gologger.Info().Msgf("Host discovery disabled: less than two ports were specified")
+		options.WithHostDiscovery = false
+	}
+	if options.shouldDiscoverHosts() && !options.hasProbes() {
+		// if no options were defined enable
+		// - ICMP Echo Request
+		// - ICMP timestamp
+		// - TCP SYN on port 80
+		// - TCP SYN on port 443
+		// - TCP ACK on port 80
+		// - TCP ACK on port 443
+		options.IcmpEchoRequestProbe = true
+		options.IcmpTimestampRequestProbe = true
+		options.TcpSynPingProbes = append(options.TcpSynPingProbes, "80")
+		options.TcpSynPingProbes = append(options.TcpSynPingProbes, "443")
+		options.TcpAckPingProbes = append(options.TcpAckPingProbes, "80")
+		options.TcpAckPingProbes = append(options.TcpAckPingProbes, "443")
+	}
+}

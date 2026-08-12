@@ -1,0 +1,11 @@
+cmd/naabu/naabu*
+vendor
+integration_tests/naabu
+integration_tests/integration-test
+cmd/functional-test/naabu_dev
+cmd/functional-test/functional-test
+cmd/functional-test/naabu
+cmd/functional-test/*.cfg
+cmd/tools/portcorr/
+.vscode
+dist

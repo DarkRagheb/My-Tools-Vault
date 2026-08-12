@@ -1,0 +1,15 @@
+*.tar.gz
+*.pyc
+/init/data/
+/var/
+/venv/
+
+# Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# volume data
+.data

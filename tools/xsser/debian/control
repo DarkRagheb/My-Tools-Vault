@@ -1,0 +1,28 @@
+Source: xsser
+Section: web
+Priority: optional
+Maintainer: psy <epsylon@riseup.net>
+Build-Depends: debhelper-compat (= 13), python3-all, python3-setuptools
+Standards-Version: 4.6.2
+Homepage: https://xsser.03c8.net
+
+Package: xsser
+Architecture: all
+Depends: ${misc:Depends},
+ python3,
+ python3-pycurl,
+ python3-bs4,
+ python3-selenium,
+ python3-gi,
+ gir1.2-gtk-3.0,
+ python3-geoip
+Recommends: firefoxdriver, python3-pip
+Suggests: python3-fpdf2
+Description: framework to detect and exploit XSS vulnerabilities
+ Cross Site "Scripter" (aka XSSer) is an automatic framework to detect,
+ exploit and report XSS vulnerabilities in web-based applications.
+ .
+ It ships with more than 1400 XSS attacking vectors, per-WAF and
+ character-encoding bypassers, a dorking engine (7 providers), a crawler,
+ a headless-browser reverse-check that confirms each finding with no false
+ positives, and PDF/XML/JSON reporting.

@@ -1,0 +1,224 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) Micah Lee, et al.
+# This file is distributed under the same license as the OnionShare package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2020.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: OnionShare 2.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-06-01 19:58+0530\n"
+"PO-Revision-Date: 2025-02-11 08:02+0000\n"
+"Last-Translator: Sketch6580 <sketch6580@users.noreply.hosted.weblate.org>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: zh_CN\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Weblate 5.10-dev\n"
+"Generated-By: Babel 2.9.0\n"
+
+#: ../../source/develop.rst:2
+msgid "Developing OnionShare"
+msgstr "开发 OnionShare"
+
+#: ../../source/develop.rst:7
+msgid "Collaborating"
+msgstr "协作"
+
+#: ../../source/develop.rst:9
+msgid ""
+"OnionShare has an open Keybase team to discuss the project, ask questions, "
+"share ideas and designs, and making plans for future development. (It's also "
+"an easy way to send end-to-end encrypted direct messages to others in the "
+"OnionShare community, like OnionShare addresses.) To use Keybase, download "
+"the `Keybase app <https://keybase.io/download>`_, make an account, and `join "
+"this team <https://keybase.io/team/onionshare>`_. Within the app, go to "
+"\"Teams\", click \"Join a Team\", and type \"onionshare\"."
+msgstr ""
+"OnionShare 有一个公开的 Keybase 小组用来讨论专案、提问、分享设计想法与制定未"
+"来发展计画。 (它也方便直接发送端对端加密讯息给 OnionShare 社群成员，一如 "
+"OnionShare 地址) 先下载 `Keybase 应用 <https://keybase.io/download>`_, 建立帐"
+"户再 `join this team <https://keybase.io/team/onionshare>`_. 在 Keybase 应用"
+"程序里头，到 \"Teams\", 点击 \"Join a Team\"并输入 \"onionshare\"。"
+
+#: ../../source/develop.rst:12
+msgid ""
+"OnionShare also has a `mailing list <https://lists.riseup.net/www/subscribe/"
+"onionshare-dev>`_ for developers and and designers to discuss the project."
+msgstr ""
+"OnionShare 还有开发人员和设计人员讨论项目的 `邮件列表 <https://"
+"lists.riseup.net/www/subscribe/onionshare-dev>`_。"
+
+#: ../../source/develop.rst:15
+msgid "Contributing Code"
+msgstr "贡献编码"
+
+#: ../../source/develop.rst:17
+msgid ""
+"OnionShare source code is to be found in this Git repository: https://"
+"github.com/onionshare/onionshare"
+msgstr ""
+"OnionShare 源代码可在此 Git 存储库中找到：https://github.com/onionshare/"
+"onionshare"
+
+#: ../../source/develop.rst:19
+msgid ""
+"If you'd like to contribute code to OnionShare, it helps to join the Keybase "
+"team and ask questions about what you're thinking of working on. You should "
+"also review all of the `open issues <https://github.com/onionshare/"
+"onionshare/issues>`_ on GitHub to see if there are any you'd like to tackle."
+msgstr ""
+"如果您想为 OnionShare 贡献代码，加入 Keybase 团队并询问您正在考虑从事的工作会"
+"有所帮助。您还应该查看 GitHub 上的所有 `未解决的问题 <https://github.com/"
+"onionshare/onionshare/issues>`_，看看是否有您想要解决的问题。"
+
+#: ../../source/develop.rst:22
+msgid ""
+"When you're ready to contribute code, open a pull request in the GitHub "
+"repository and one of the project maintainers will review it and possibly "
+"ask questions, request changes, reject it, or merge it into the project."
+msgstr ""
+"要贡献代码，请在 GitHub 代码存放库提取要求，专案维护人员会检视、提问、要求修"
+"改、拒绝或加以合并。"
+
+#: ../../source/develop.rst:27
+msgid "Starting Development"
+msgstr "着手开发"
+
+#: ../../source/develop.rst:29
+msgid ""
+"OnionShare is developed in Python. To get started, clone the Git repository "
+"at https://github.com/onionshare/onionshare/ and then consult the ``cli/"
+"README.md`` file to learn how to set up your development environment for the "
+"command-line version, and the ``desktop/README.md`` file to learn how to set "
+"up your development environment for the graphical version."
+msgstr ""
+"OnionShare 是用 Python 开发的。首先，请克隆 https://github.com/onionshare/"
+"onionshare/ 上的 Git 存储库，然后查阅 ``cli/README.md`` 文件以了解如何为命令"
+"行版本设置开发环境，并查阅 ``desktop/README.md`` 文件以了解如何为图形版本设置"
+"开发环境。"
+
+#: ../../source/develop.rst:32
+msgid ""
+"Those files contain the necessary technical instructions and commands "
+"install dependencies for your platform, and to run OnionShare from the "
+"source tree."
+msgstr ""
+"这些文件包含必要的技术指示、平台安装命令和依赖包，以便从源码树来执行 "
+"OnionShare。"
+
+#: ../../source/develop.rst:35
+msgid "Debugging tips"
+msgstr "侦错诀窍"
+
+#: ../../source/develop.rst:38
+msgid "Verbose mode"
+msgstr "冗长模式"
+
+#: ../../source/develop.rst:40
+msgid ""
+"When developing, it's convenient to run OnionShare from a terminal and add "
+"the ``--verbose`` (or ``-v``) flag to the command. This prints a lot of "
+"helpful messages to the terminal, such as when certain objects are "
+"initialized, when events occur (like buttons clicked, settings saved or "
+"reloaded), and other debug info. For example::"
+msgstr ""
+"开发时，从终端运行 OnionShare并在命令中添加 ``--verbose``（或 ``-v``）标志非"
+"常方便。这会在终端上输出很多有用信息，如初始化某些对象时、事件发生时（如点击"
+"了按钮、保存或重新加载了设置）以及其他调试信息。例如::"
+
+#: ../../source/develop.rst:117
+msgid ""
+"You can add your own debug messages by running the ``Common.log`` method "
+"from ``onionshare/common.py``. For example::"
+msgstr ""
+"您可以通过运行 ``onionshare/common.py`` 中的 ``Common.log`` 方法添加自己的调"
+"试信息。例如::"
+
+#: ../../source/develop.rst:121
+msgid ""
+"This can be useful when learning the chain of events that occur when using "
+"OnionShare, or the value of certain variables before and after they are "
+"manipulated."
+msgstr ""
+"这对学习使用 OnionShare 事件发生链很有帮助，或是了解一些变数值在操纵前后的变"
+"化。"
+
+#: ../../source/develop.rst:124
+msgid "Local Only"
+msgstr "仅限本地"
+
+#: ../../source/develop.rst:126
+msgid ""
+"Tor is slow, and it's often convenient to skip starting onion services "
+"altogether during development. You can do this with the ``--local-only`` "
+"flag. For example::"
+msgstr ""
+"Tor 速度慢，在开发过程中完全跳过启动洋葱服务通常很方便 ，可使用 ``--local-"
+"only`` 标记完成操作。例如::"
+
+#: ../../source/develop.rst:165
+msgid ""
+"In this case, you load the URL ``http://127.0.0.1:17641`` in a normal web-"
+"browser like Firefox, instead of using the Tor Browser. The private key is "
+"not actually needed in local-only mode, so you can ignore it."
+msgstr ""
+"在这种情况下，您可以在 Firefox 等普通浏览器中加载 URL ``http://"
+"127.0.0.1:17641``，而不是使用 Tor 浏览器。在本地模式下实际上不需要私钥，因此"
+"您可以忽略它。"
+
+#: ../../source/develop.rst:168
+msgid "Contributing Translations"
+msgstr "贡献翻译"
+
+#: ../../source/develop.rst:170
+msgid ""
+"Help make OnionShare easier to use and more familiar and welcoming for "
+"people by translating it on `Hosted Weblate <https://hosted.weblate.org/"
+"projects/onionshare/>`_. Always keep the \"OnionShare\" in latin letters, "
+"and use \"OnionShare (localname)\" if needed."
+msgstr ""
+"协助 OnionShare 更易使用与亲切，欢迎加入 `Hosted Weblate <https://"
+"hosted.weblate.org/projects/onionshare/>`_ 翻译计画。请保持 \"OnionShare\" 原"
+"字或使用 \"OnionShare (本地译名)\"格式 。"
+
+#: ../../source/develop.rst:172
+msgid ""
+"To help translate, make a Hosted Weblate account and start contributing."
+msgstr "协助翻译，注册 Hosted Weblate 帐号即可开始贡献。"
+
+#: ../../source/develop.rst:175
+msgid "Suggestions for Original English Strings"
+msgstr "对原始英文字串的建议"
+
+#: ../../source/develop.rst:177
+msgid ""
+"Sometimes the original English strings are wrong, or don't match between the "
+"application and the documentation."
+msgstr "有时候原始英文有误或是应用程序与文档不相符。"
+
+#: ../../source/develop.rst:179
+msgid ""
+"File source string improvements by adding @kingu to your Weblate comment, or "
+"open a GitHub issue or pull request. The latter ensures all upstream "
+"developers see the suggestion, and can potentially modify the string via the "
+"usual code review processes."
+msgstr ""
+"档案原始字串改进可在 Weblate 加评注并呼叫 @kingu，或是在 Github 发起 issue 或"
+"提交要求，后一种方式可让上游开发人员看到建议后可能会在正常检查流程中修改字"
+"串。"
+
+#: ../../source/develop.rst:183
+msgid "Status of Translations"
+msgstr "翻译状况"
+
+#: ../../source/develop.rst:184
+msgid ""
+"Here is the current translation status. If you want start a translation in a "
+"language not yet started, please write to the mailing list: onionshare-"
+"dev@lists.riseup.net"
+msgstr ""
+"这是目前的翻译状况，如果想要新发起一个未列入的语言翻译，请来信到邮件群组:: "
+"onionshare-dev@lists.riseup.net"

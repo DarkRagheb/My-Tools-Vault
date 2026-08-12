@@ -1,0 +1,17 @@
+#!/usr/bin/make -f
+
+PKGDIR = debian/xsser
+SHAREDIR = $(PKGDIR)/usr/share/xsser
+
+%:
+	dh $@ --buildsystem=none
+
+override_dh_auto_install:
+	install -d $(SHAREDIR)
+	cp -a core gtk doc xsser setup.py README.md $(SHAREDIR)/
+	find $(SHAREDIR) -type d -name '__pycache__' -prune -exec rm -rf {} +
+	find $(SHAREDIR) -type f -name '*.py[co]' -delete
+	install -d $(PKGDIR)/usr/bin
+	install -m0755 debian/xsser.wrapper $(PKGDIR)/usr/bin/xsser
+	install -d $(PKGDIR)/usr/share/applications
+	install -m0644 gtk/xsser.desktop $(PKGDIR)/usr/share/applications/xsser.desktop

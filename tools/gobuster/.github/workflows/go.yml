@@ -1,0 +1,33 @@
+name: Go
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: "stable"
+
+      - name: Install Task
+        uses: arduino/setup-task@v2
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get dependencies
+        run: task deps
+
+      - name: Build linux
+        run: task linux
+
+      - name: Build windows
+        run: task windows
+
+      - name: Test
+        run: task test

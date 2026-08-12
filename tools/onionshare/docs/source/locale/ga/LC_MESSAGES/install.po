@@ -1,0 +1,565 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) Micah Lee, et al.
+# This file is distributed under the same license as the OnionShare package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2020.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: OnionShare 2.3\n"
+"Report-Msgid-Bugs-To: onionshare-dev@lists.riseup.net\n"
+"POT-Creation-Date: 2026-06-01 19:58+0530\n"
+"PO-Revision-Date: 2026-06-14 03:01+0000\n"
+"Last-Translator: Aindriú Mac Giolla Eoin <aindriu80@gmail.com>\n"
+"Language-Team: ga <LL@li.org>\n"
+"Language: ga\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=5; plural=n==1 ? 0 : n==2 ? 1 : (n>2 && n<7) ? 2 :(n>"
+"6 && n<11) ? 3 : 4;\n"
+"X-Generator: Weblate 2026.7.dev0\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/install.rst:2
+msgid "Installation"
+msgstr "Suiteáil"
+
+#: ../../source/install.rst:5
+msgid "Windows or macOS"
+msgstr "Windows nó macOS"
+
+#: ../../source/install.rst:7
+msgid ""
+"You can download OnionShare for Windows and macOS from the `OnionShare "
+"website <https://onionshare.org/>`_."
+msgstr ""
+"Is féidir leat OnionShare do Windows agus macOS a íoslódáil ó shuíomh "
+"Gréasáin `OnionShare <https://onionshare.org/>`_."
+
+#: ../../source/install.rst:12
+msgid "Mobile"
+msgstr "Soghluaiste"
+
+#: ../../source/install.rst:14
+msgid "You can download OnionShare for Mobile from the follow links"
+msgstr ""
+"Is féidir leat OnionShare for Mobile a íoslódáil ó na naisc seo a leanas"
+
+#: ../../source/install.rst:16
+msgid "Android"
+msgstr "Android"
+
+#: ../../source/install.rst:17
+msgid ""
+"Google Play: https://play.google.com/store/apps/details?"
+"id=org.onionshare.android"
+msgstr ""
+"Google Play: https://play.google.com/store/apps/details?"
+"id=org.onionshare.android"
+
+#: ../../source/install.rst:18
+msgid "F-Droid: https://github.com/onionshare/onionshare-android-nightly"
+msgstr "F-Droid: https://github.com/onionshare/onionshare-android-nightly"
+
+#: ../../source/install.rst:20
+msgid "iOS"
+msgstr "iOS"
+
+#: ../../source/install.rst:21
+msgid "Apple App Store: https://apps.apple.com/app/onionshare/id1601890129"
+msgstr "Apple App Store: https://apps.apple.com/app/onionshare/id1601890129"
+
+#: ../../source/install.rst:22
+msgid ""
+"Direct IPA download: https://github.com/onionshare/onionshare-ios/releases"
+msgstr ""
+"Íoslódáil go díreach IPA: https://github.com/onionshare/onionshare-ios/"
+"releases"
+
+#: ../../source/install.rst:23
+msgid "Testflight: https://testflight.apple.com/join/ZCJeY65W"
+msgstr "Eitiltí tástála: https://testflight.apple.com/join/ZCJeY65W"
+
+#: ../../source/install.rst:27
+msgid "Linux"
+msgstr "Linux"
+
+#: ../../source/install.rst:29
+msgid ""
+"There are various ways to install OnionShare for Linux, but the recommended "
+"way is to use either the `Flatpak <https://flatpak.org/>`_ or the `Snap "
+"<https://snapcraft.io/>`_ package. Flatpak and Snapcraft ensure that you'll "
+"always use the newest version and run OnionShare inside of a sandbox."
+msgstr ""
+"Tá bealaí éagsúla ann chun OnionShare a shuiteáil le haghaidh Linux, ach is "
+"é an bealach molta ná úsáid a bhaint as an bpacáiste `Flatpak <https://"
+"flatpak.org/>`_ nó an pacáiste `Snap <https://snapcraft.io/>`_ . Cinntíonn "
+"Flatpak agus Snapcraft go mbainfidh tú úsáid as an leagan is nua i gcónaí "
+"agus OnionShare a reáchtáil taobh istigh de bhosca gainimh."
+
+#: ../../source/install.rst:32
+msgid ""
+"Snapcraft support is built-in to Ubuntu and Fedora comes with Flatpak "
+"support, but which you use is up to you. Both work in all Linux "
+"distributions."
+msgstr ""
+"Tá tacaíocht Snapcraft ionsuite i Ubuntu agus tagann Fedora le tacaíocht "
+"Flatpak, ach is fút féin a úsáideann tú. Oibríonn an dá cheann i ngach "
+"dáileadh Linux."
+
+#: ../../source/install.rst:34
+msgid ""
+"**Install OnionShare using Flatpak**: https://flathub.org/apps/details/"
+"org.onionshare.OnionShare"
+msgstr ""
+"**Suiteáil OnionShare ag baint úsáide as Flatpak**: https://flathub.org/apps/"
+"details/org.onionshare.OnionShare"
+
+#: ../../source/install.rst:36
+msgid "**Install OnionShare using Snapcraft**: https://snapcraft.io/onionshare"
+msgstr ""
+"**Suiteáil OnionShare ag baint úsáide as Snapcraft**: https://snapcraft.io/"
+"onionshare"
+
+#: ../../source/install.rst:38
+msgid ""
+"You can also download and install PGP-signed ``.flatpak`` or ``.snap`` "
+"packages from https://onionshare.org/dist/ if you prefer."
+msgstr ""
+"Is féidir leat pacáistí ``.flatpak`` nó ``.snap`` sínithe PGP a íoslódáil "
+"agus a shuiteáil ó https://onionshare.org/dist/ más fearr leat."
+
+#: ../../source/install.rst:41
+msgid "Manual Flatpak Installation"
+msgstr "Suiteáil Flatpak Lámhleabhar"
+
+#: ../../source/install.rst:43
+msgid ""
+"If you'd like to install OnionShare manually with Flatpak using the PGP-"
+"signed `single-file bundle <https://docs.flatpak.org/en/latest/single-file-"
+"bundles.html>`_, you can do so like this:"
+msgstr ""
+"Más mian leat OnionShare a shuiteáil de láimh le Flatpak ag baint úsáide as "
+"an `cuachán aonchomhad sínithe PGP <https://docs.flatpak.org/en/latest/"
+"single-file-bundles.html>`_, is féidir leat a dhéanamh mar seo:"
+
+#: ../../source/install.rst:45
+msgid ""
+"Install Flatpak by following the instructions at https://flatpak.org/setup/."
+msgstr ""
+"Suiteáil Flatpak trí na treoracha ag https://flatpak.org/setup/ a leanúint."
+
+#: ../../source/install.rst:46
+msgid ""
+"Add the Flathub repository by running ``flatpak remote-add --if-not-exists "
+"flathub https://flathub.org/repo/flathub.flatpakrepo``. Even though you "
+"won't be downloading OnionShare from Flathub, OnionShare depends on some "
+"packages that are only available there."
+msgstr ""
+"Cuir stór Flathub leis trí ``flatpak remote-add --if-not-exists flathub "
+"https://flathub.org/repo/flathub.flatpakrepo`` a rith. Cé nach mbeidh "
+"OnionShare á íoslódáil agat ó Flathub, braitheann OnionShare ar roinnt "
+"pacáistí nach bhfuil ar fáil ach ann."
+
+#: ../../source/install.rst:47
+msgid ""
+"Go to https://onionshare.org/dist/, choose the latest version of OnionShare, "
+"and download the ``.flatpak`` and ``.flatpak.asc`` files."
+msgstr ""
+"Téigh go https://onionshare.org/dist/, roghnaigh an leagan is déanaí de "
+"OnionShare, agus íoslódáil na comhaid ``.flatpak`` agus ``.flatpak.asc``."
+
+#: ../../source/install.rst:48
+msgid ""
+"Verify the PGP signature of the ``.flatpak`` file. See :ref:`verifying_sigs` "
+"for more info."
+msgstr ""
+"Fíoraigh síniú PGP an chomhaid ``.flatpak``. Féach :ref:`verifying_sigs` le "
+"haghaidh tuilleadh eolais."
+
+#: ../../source/install.rst:49
+msgid ""
+"Install the ``.flatpak`` file by running ``flatpak install OnionShare-"
+"VERSION.flatpak``. Replace ``VERSION`` with the version number of the file "
+"you downloaded."
+msgstr ""
+"Suiteáil an comhad ``.flatpak`` trí ``flatpak install OnionShare-"
+"VERSION.flatpak`` a rith. Cuir uimhir leagain an chomhaid a d'íoslódálais in "
+"ionad ``VERSION``."
+
+#: ../../source/install.rst:51
+msgid "You can run OnionShare with: `flatpak run org.onionshare.OnionShare`."
+msgstr ""
+"Is féidir leat OnionShare a rith le: `flatpak run org.onionshare.OnionShare`."
+
+#: ../../source/install.rst:54
+msgid "Manual Snapcraft Installation"
+msgstr "Suiteáil Snapcraft Lámhleabhar"
+
+#: ../../source/install.rst:56
+msgid ""
+"If you'd like to install OnionShare manually with Snapcraft using the PGP-"
+"signed Snapcraft package, you can do so like this:"
+msgstr ""
+"Más mian leat OnionShare a shuiteáil de láimh le Snapcraft ag baint úsáide "
+"as an bpacáiste Snapcraft sínithe PGP, is féidir leat é seo a dhéanamh mar "
+"seo:"
+
+#: ../../source/install.rst:58
+msgid ""
+"Install Snapcraft by following the instructions at https://snapcraft.io/docs/"
+"installing-snapd."
+msgstr ""
+"Suiteáil Snapcraft trí na treoracha ag https://snapcraft.io/docs/installing-"
+"snapd a leanúint."
+
+#: ../../source/install.rst:59
+msgid ""
+"Go to https://onionshare.org/dist/, choose the latest version of OnionShare, "
+"and download the ``.snap`` and ``.snap.asc`` files."
+msgstr ""
+"Téigh go https://onionshare.org/dist/, roghnaigh an leagan is déanaí de "
+"OnionShare, agus íoslódáil na comhaid ``.snap`` agus ``.snap.asc``."
+
+#: ../../source/install.rst:60
+msgid ""
+"Verify the PGP signature of the ``.snap`` file. See :ref:`verifying_sigs` "
+"for more info."
+msgstr ""
+"Fíoraigh síniú PGP an chomhaid ``.snap``. Féach :ref:`verifying_sigs` le "
+"haghaidh tuilleadh eolais."
+
+#: ../../source/install.rst:61
+msgid ""
+"Install the ``.snap`` file by running ``snap install --dangerous "
+"onionshare_VERSION_amd64.snap``. Replace ``VERSION`` with the version number "
+"of the file you downloaded. Note that you must use `--dangerous` because the "
+"package is not signed by the Snapcraft store, however you did verify its PGP "
+"signature, so you know it's legitimate."
+msgstr ""
+"Suiteáil an comhad ``.snap`` trí ``snap install --contúirteach "
+"onionshare_VERSION_amd64.snap`` a rith. Cuir uimhir leagain an chomhaid a "
+"d'íoslódáil tú in ionad ``VERSION``. Tabhair faoi deara go gcaithfidh tú `--"
+"chontúirteach` a úsáid toisc nach bhfuil an pacáiste sínithe ag an siopa "
+"Snapcraft, ach rinne tú a shíniú PGP a fhíorú, ionas go mbeidh a fhios agat "
+"go bhfuil sé dlisteanach."
+
+#: ../../source/install.rst:63
+msgid "You can run OnionShare with: `snap run onionshare`."
+msgstr "Is féidir leat OnionShare a rith le: `snap run onionshare`."
+
+#: ../../source/install.rst:68
+msgid "Command-line only"
+msgstr "Líne ordaithe amháin"
+
+#: ../../source/install.rst:70
+msgid ""
+"You can install just the command-line version of OnionShare on any operating "
+"system using the Python package manager ``pip``. :ref:`cli` has more info."
+msgstr ""
+"Is féidir leat an leagan líne ordaithe de OnionShare a shuiteáil ar aon "
+"chóras oibriúcháin ag baint úsáide as bainisteoir pacáiste Python ``pip``. "
+"Tá tuilleadh eolais ag :ref:`cli`."
+
+#: ../../source/install.rst:75
+msgid "FreeBSD"
+msgstr "FreeBSD"
+
+#: ../../source/install.rst:77
+msgid ""
+"Althought not being officially developed for this platform, OnionShare can "
+"also be installed on `FreeBSD <https://freebsd.org/>`_. It's available via "
+"its ports collection or as pre-built package. Should you opt to install and "
+"use OnionShare on a FreeBSD operating system, please be aware that it's "
+"**NOT** officially supported by the OnionShare project."
+msgstr ""
+"Cé nach bhfuil sé á fhorbairt go hoifigiúil don ardán seo, is féidir "
+"OnionShare a shuiteáil ar `FreeBSD <https://freebsd.org/>`_. Tá sé ar fáil "
+"trína bhailiúchán poirt nó mar phacáiste réamhthógtha. Má roghnaíonn tú "
+"OnionShare a shuiteáil agus a úsáid ar chóras oibriúcháin FreeBSD, tabhair "
+"faoi deara le do thoil go bhfuil **NACH** á thacú go hoifigiúil ag an "
+"tionscadal OnionShare."
+
+#: ../../source/install.rst:79
+msgid ""
+"Though not being offered and officially maintained by the OnionShare "
+"developers, the FreeBSD packages and ports do fetch and verifies the source "
+"codes from the official OnionShare repository (or its official release "
+"packages from `PyPI <https://pypi.org/project/onionshare-cli/>`_). Should "
+"you wish to check changes related to this platform, please refer to the "
+"following resources:"
+msgstr ""
+"Cé nach bhfuil siad á dtairiscint agus á gcothabháil go hoifigiúil ag na "
+"forbróirí OnionShare, déanann na pacáistí agus na poirt FreeBSD na cóid "
+"foinse a fháil agus a fhíorú ó stór oifigiúil OnionShare (nó a phacáistí "
+"scaoileadh oifigiúil ó `PyPI <https://pypi.org/project/onionshare -cli/>`_). "
+"Más mian leat athruithe a bhaineann leis an ardán seo a sheiceáil, féach le "
+"do thoil do na hacmhainní seo a leanas:"
+
+#: ../../source/install.rst:81
+msgid "https://cgit.freebsd.org/ports/log/www/onionshare"
+msgstr "https://cgit.freebsd.org/ports/log/www/onionshare"
+
+#: ../../source/install.rst:82
+msgid "https://www.freshports.org/www/onionshare"
+msgstr "https://www.freshports.org/www/onionshare"
+
+#: ../../source/install.rst:85
+msgid "Manual pkg Installation"
+msgstr "Suiteáil pkg láimhe"
+
+#: ../../source/install.rst:87
+msgid ""
+"To install the binary package, use ``pkg install pyXY-onionshare``, with "
+"``pyXY`` specifying the version of Python the package was built for. So, in "
+"order to install OnionShare for Python 3.9, use::"
+msgstr ""
+"Chun an pacáiste dénártha a shuiteáil, bain úsáid as ``pkg install pyXY-"
+"onionshare``, agus ``pyXY`` ag sonrú an leagan de Python ar tógadh an "
+"pacáiste dó. Mar sin, chun OnionShare a shuiteáil do Python 3.9, bain úsáid "
+"as::"
+
+#: ../../source/install.rst:91
+msgid ""
+"There's also a **Command-line only** version of OnionShare available as pre-"
+"built package. Replace ``py39-onionshare`` by ``py39-onionshare-cli`` if you "
+"want to install that version."
+msgstr ""
+"Tá leagan de OnionShare, atá le húsáid don **Líne Ordaithe Amháin**, ar fáil "
+"mar phacáiste réamhthógtha freisin. Cuir ``py39-onionshare-cli`` in ionad "
+"``py39-onionshare`` más mian leat an leagan sin a shuiteáil."
+
+#: ../../source/install.rst:93
+msgid ""
+"For additional information and details about the FreeBSD pre-built packages, "
+"please refer to its `official Handbook section about pkg <https://"
+"docs.freebsd.org/en/books/handbook/ports/#pkgng-intro>`_."
+msgstr ""
+"Le haghaidh tuilleadh faisnéise agus sonraí faoi na pacáistí réamhthógtha "
+"FreeBSD, féach le do thoil dá rannán `Lámhleabhar Oifigiúil faoi pkg "
+"<https://docs.freebsd.org/en/books/handbook/ports/#pkgng-intro>`_."
+
+#: ../../source/install.rst:96
+msgid "Manual port Installation"
+msgstr "Suiteáil port láimhe"
+
+#: ../../source/install.rst:98
+msgid ""
+"To install the FreeBSD port, change directory to the `ports collection "
+"<https://freebsd.org/ports/>`_ you must have checked out before and run the "
+"following::"
+msgstr ""
+"Chun an port FreeBSD a shuiteáil, athraigh an t-eolaire go dtí an `ports "
+"collection <https://freebsd.org/ports/>`_ a chaithfidh tú a bheith "
+"seiceáilte amach roimhe seo agus rith an méid seo a leanas::"
+
+#: ../../source/install.rst:102
+msgid ""
+"The ports collection also offers a dedicated port for the **Command-line "
+"only** version of OnionShare. Replace ``www/onionshare`` by ``www/onionshare-"
+"cli`` if you want to install that version."
+msgstr ""
+"Tairgeann bailiúchán na gcalafort freisin port tiomnaithe don leagan "
+"**Command-line only** de OnionShare. Cuir ``www/onionshare-cli`` in ionad "
+"``www/onionshare`` más mian leat an leagan sin a shuiteáil."
+
+#: ../../source/install.rst:104
+msgid ""
+"For additional information and details about the FreeBSD ports collection, "
+"please refer to its `official Handbook section about ports <https://"
+"docs.freebsd.org/en/books/handbook/ports/#ports-using>`_."
+msgstr ""
+"Le tuilleadh faisnéise agus sonraí a fháil faoi bhailiúchán na bport "
+"FreeBSD, féach le do thoil dá rannán `Lámhleabhar Oifigiúil faoi phoirt "
+"<https://docs.freebsd.org/en/books/handbook/ports/#ports-using>`_."
+
+#: ../../source/install.rst:109
+msgid "Verifying PGP signatures"
+msgstr "Sínithe PGP á bhfíorú"
+
+#: ../../source/install.rst:111
+msgid ""
+"You can verify that the package you download is legitimate and hasn't been "
+"tampered with by verifying its PGP signature. For Windows and macOS, this "
+"step is optional and provides defense in depth: the OnionShare binaries "
+"include operating system-specific signatures, and you can just rely on those "
+"alone if you'd like."
+msgstr ""
+"Is féidir leat a fhíorú go bhfuil an pacáiste a íoslódálann tú dlisteanach "
+"agus nár cuireadh isteach air trína shíniú PGP a fhíorú. I gcás Windows agus "
+"macOS, tá an chéim seo roghnach agus soláthraíonn sé cosaint dhomhain: "
+"cuimsíonn na binaries OnionShare sínithe a bhaineann go sonrach le córais "
+"oibriúcháin, agus is féidir leat brath orthu sin amháin más mian leat."
+
+#: ../../source/install.rst:115
+msgid "Signing key"
+msgstr "Eochair sínithe"
+
+#: ../../source/install.rst:117
+msgid ""
+"Packages are signed by the core developer who is responsible for the "
+"particular release. Here is the GPG key information for each of the core "
+"developers of OnionShare:"
+msgstr ""
+"Síníonn an príomhfhorbróir atá freagrach as an scaoileadh ar leith na "
+"pacáistí. Seo é an príomhfhaisnéis GPG do gach ceann de na forbróirí "
+"lárnacha de OnionShare:"
+
+#: ../../source/install.rst:120
+msgid "Micah Lee:"
+msgstr "Micah Lee:"
+
+#: ../../source/install.rst:121
+msgid ""
+"PGP public key fingerprint ``927F419D7EC82C2F149C1BD1403C2657CD994F73``."
+msgstr ""
+"Méarloirg eochair phoiblí PGP ``927F419D7EC82C2F149C1BD1403C2657CD994F73``."
+
+#: ../../source/install.rst:122
+msgid ""
+"You can download Micah's key `from the keys.openpgp.org keyserver <https://"
+"keys.openpgp.org/vks/v1/by-fingerprint/"
+"927F419D7EC82C2F149C1BD1403C2657CD994F73>`_."
+msgstr ""
+"Is féidir leat eochair Mhicah `ó fhreastalaí eochracha keys.openpgp.org "
+"<https://keys.openpgp.org/vks/v1/by-fingerprint/"
+"927F419D7EC82C2F149C1BD1403C2657CD994F73>`_."
+
+#: ../../source/install.rst:124
+msgid "Saptak Sengupta:"
+msgstr "Saptak Sengupta:"
+
+#: ../../source/install.rst:125
+msgid ""
+"PGP public key fingerprint ``2AE3D40A6905C8E4E8ED95ECE46A2B977C14666B``."
+msgstr ""
+"Méarloirg eochair phoiblí PGP ``2AE3D40A6905C8E4E8ED95ECE46A2B977C14666B``."
+
+#: ../../source/install.rst:126
+msgid ""
+"You can download Saptak's key `from the keys.openpgp.org keyserver <https://"
+"keys.openpgp.org/vks/v1/by-fingerprint/"
+"2AE3D40A6905C8E4E8ED95ECE46A2B977C14666B>`_."
+msgstr ""
+"Is féidir leat eochair Saptak `a íoslódáil ón bhfreastalaí eochracha "
+"keys.openpgp.org <https://keys.openpgp.org/vks/v1/by-fingerprint/"
+"2AE3D40A6905C8E4E8ED95ECE46A2B977C14666B>`_."
+
+#: ../../source/install.rst:128
+msgid "Miguel Jacq:"
+msgstr "Miguel Jacq:"
+
+#: ../../source/install.rst:129
+msgid ""
+"PGP public key fingerprint ``54A91143AE0AB4F7743B01FE888ED1B423A3BC99``."
+msgstr ""
+"Méarlorg eochrach phoiblí PGP ``54A91143AE0AB4F7743B01FE888ED1B423A3BC99``."
+
+#: ../../source/install.rst:130
+msgid ""
+"You can download Miguel's key `from the keys.openpgp.org keyserver <https://"
+"keys.openpgp.org/vks/v1/by-fingerprint/"
+"54A91143AE0AB4F7743B01FE888ED1B423A3BC99>`_."
+msgstr ""
+"Is féidir leat eochair Miguel a íoslódáil `ón bhfreastalaí eochrach "
+"keys.openpgp.org <https://keys.openpgp.org/vks/v1/by-fingerprint/"
+"54A91143AE0AB4F7743B01FE888ED1B423A3BC99>`_."
+
+#: ../../source/install.rst:132
+msgid ""
+"You must have GnuPG installed to verify signatures. For macOS you probably "
+"want `GPGTools <https://gpgtools.org/>`_, and for Windows you probably want "
+"`Gpg4win <https://www.gpg4win.org/>`_."
+msgstr ""
+"Ní mór GnuPG a bheith suiteáilte agat chun sínithe a fhíorú. Maidir le macOS "
+"is dócha gur mhaith leat `GPGTools <https://gpgtools.org/>`_, agus le "
+"haghaidh Windows is dócha go dteastaíonn `Gpg4win <https://www.gpg4win.org/"
+">`_."
+
+#: ../../source/install.rst:135
+msgid "Signatures"
+msgstr "Sínithe"
+
+#: ../../source/install.rst:137
+msgid ""
+"You can find the signatures (as ``.asc`` files), as well as Windows, macOS, "
+"Flatpak, Snap, and source packages, at https://onionshare.org/dist/ in the "
+"folders named for each version of OnionShare. You can also find them on the "
+"`GitHub Releases page <https://github.com/onionshare/onionshare/releases>`_."
+msgstr ""
+"Is féidir leat na sínithe a fháil (mar chomhaid ``.asc``), chomh maith le "
+"Windows, macOS, Flatpak, Snap, agus pacáistí foinse, ag https://"
+"onionshare.org/dist/ sna fillteáin ainmnithe do gach leagan de OinniúnShare. "
+"Is féidir leat iad a fháil freisin ar an leathanach `GitHub Releases "
+"<https://github.com/onionshare/onionshare/releases>`_."
+
+#: ../../source/install.rst:141
+msgid "Verifying"
+msgstr "Ag fíorú"
+
+#: ../../source/install.rst:143
+msgid ""
+"Once you have imported the core developers public keys into your GnuPG "
+"keychain, downloaded the binary and ``.asc`` signature, you can verify the "
+"binary in a terminal like this:"
+msgstr ""
+"Nuair a bheidh eochracha poiblí na bhforbróirí lárnacha iompórtáilte isteach "
+"i do eochairshlabhra GnuPG, an síniú dénártha agus ``.asc`` a íoslódáil, is "
+"féidir leat an dénártha a fhíorú i dteirminéal mar seo:"
+
+#: ../../source/install.rst:145
+msgid "For Windows::"
+msgstr "Do Windows::"
+
+#: ../../source/install.rst:149
+msgid "For macOS::"
+msgstr "Do macOS ::"
+
+#: ../../source/install.rst:153
+msgid "For Linux::"
+msgstr "Do Linux::"
+
+#: ../../source/install.rst:159
+msgid "and for the source file::"
+msgstr "agus don chomhad foinse::"
+
+#: ../../source/install.rst:163
+msgid "The expected output looks like this::"
+msgstr "Breathnaíonn an t-aschur ionchais mar seo::"
+
+#: ../../source/install.rst:173
+msgid ""
+"If you don't see ``Good signature from``, there might be a problem with the "
+"integrity of the file (malicious or otherwise), and you should not install "
+"the package."
+msgstr ""
+"Mura bhfeiceann tú ``Síniú maith ó``, seans go mbeidh fadhb ann le sláine an "
+"chomhaid (mailíseach nó eile), agus níor cheart duit an pacáiste a shuiteáil."
+
+#: ../../source/install.rst:175
+msgid ""
+"The ``WARNING:`` shown above, is not a problem with the package, it only "
+"means you haven't defined a level of \"trust\" of Micah's (the core "
+"developer) PGP key."
+msgstr ""
+"Ní fadhb leis an bpacáiste atá sa ``RABHADH:`` a thaispeántar thuas, "
+"ciallaíonn sé nach bhfuil leibhéal \"muiníne\" sainmhínithe agat maidir le "
+"heochair PGP Micah (an príomhfhorbróir)."
+
+#: ../../source/install.rst:177
+msgid ""
+"If you want to learn more about verifying PGP signatures, the guides for "
+"`Qubes OS <https://www.qubes-os.org/security/verifying-signatures/>`_ and "
+"the `Tor Project <https://support.torproject.org/tbb/how-to-verify-signature/"
+">`_ may be useful."
+msgstr ""
+"Más mian leat tuilleadh eolais a fháil faoi shínithe PGP a fhíorú, "
+"d'fhéadfadh na treoracha do `Qubes OS <https://www.qubes-os.org/security/"
+"verifying-signatures/>`_ agus an `Tor Project <https://"
+"support.torproject.org/tbb/how-to-verify-signature/>`_ a bheith úsáideach."
+
+#~ msgid ""
+#~ "PGP public key fingerprint ``00AE817C24A10C2540461A9C1D7CDE0234DB458D``."
+#~ msgstr ""
+#~ "Méarloirg eochair phoiblí PGP "
+#~ "``00AE817C24A10C2540461A9C1D7CDE0234DB458D``."

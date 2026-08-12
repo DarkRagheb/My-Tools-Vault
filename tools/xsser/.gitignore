@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+*.egg
+*.egg-info/
+build/
+dist/
+.xsser/
+XSSreport.raw
+XSSer_*.xml
+*.swp
+*~
