@@ -27,8 +27,8 @@ DARK-MARIJUANA is a command-line tool installer and manager designed to organize
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/DarkRagheb/DARK-MARIJUANA.git
-   cd DARK-MARIJUANA
+   git clone https://github.com/DarkRagheb/Dark-Marijuana.git
+   cd Dark-Marijuana
    ```
 
 2. **(Optional) Install enhanced dependencies:**
