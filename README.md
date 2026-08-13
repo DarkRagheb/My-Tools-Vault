@@ -1,4 +1,5 @@
 <img width="1038" height="662" alt="logo" src="https://github.com/user-attachments/assets/81358575-d555-49f4-ba57-38a6149b7db5" />
+
 # DARK-MARIJUANA (V1)
 
 DARK-MARIJUANA is a command-line tool installer and manager designed to organize, clone, and execute various security, network analysis, OSINT, and research utilities from a centralized interface.
