@@ -50,14 +50,12 @@ chmod +x run.sh
 ```bash
 ./run.sh
 ```
-لإأ
 #OR
-##Launch the tool using Python 3:
 
+##Launch the tool using Python 3:
 ```bash
 python3 Main.py
 ```
-
 ### Navigation
 
 1. **Select Category:** Enter the corresponding menu number to choose a tool category.
