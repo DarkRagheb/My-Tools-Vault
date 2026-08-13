@@ -1,8 +1,8 @@
-# DARK-MARIJUANA (RR29-V1)
+# DARK-MARIJUANA (V1)
 
 DARK-MARIJUANA is a command-line tool installer and manager designed to organize, clone, and execute various security, network analysis, OSINT, and research utilities from a centralized interface.
 
----
+
 
 ## Features
 
@@ -38,8 +38,13 @@ DARK-MARIJUANA is a command-line tool installer and manager designed to organize
 ---
 
 ## Usage
+#Launch via excutable code:
 
-Launch the tool using Python 3:
+chmod +x run.sh
+./run.sh
+
+#OR
+##Launch the tool using Python 3:
 
 ```bash
 python3 Main.py
