@@ -41,10 +41,16 @@ DARK-MARIJUANA is a command-line tool installer and manager designed to organize
 
 ## Usage
 #Launch via excutable code:
-
+ذذذذذذذ
+```bash
 chmod +x run.sh
-./run.sh
+```
+##Then
 
+```bash
+./run.sh
+```
+لإأ
 #OR
 ##Launch the tool using Python 3:
 
